@@ -1,30 +1,96 @@
-# Digital Agency
+# 🏠 Homi — Student Housing Estate Analytics & Listing Platform
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+Homi is a full-stack web application that reimagines student housing. It connects students with verified listings, intelligent roommate matching, and AI-powered analytics to make housing safer, easier, and smarter.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/kabirsaamir-gmailcoms-projects/homi)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/9u3chdTr00L)
+---
 
-## Overview
+## 📌 Core Features
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+### 🔍 Personalized Matches
+- Swipe-based interface for housing and roommates
+- Compatibility engine using lifestyle quizzes
+- Verified student profiles for safer interactions
 
-## Deployment
+### 📈 Smart Housing Insights
+- Predictive rent trends using historical data
+- Neighborhood scoring and affordability indicators
+- Recommendation system for housing options
 
-Your project is live at:
+### 🏢 Landlord Dashboard
+- Simple property listing with photos and amenities
+- Application and inquiry management
+- Pre-screened student profiles and messaging system
 
-**[https://vercel.com/kabirsaamir-gmailcoms-projects/homi](https://vercel.com/kabirsaamir-gmailcoms-projects/homi)**
+---
 
-## Build your app
+## 🛠️ Tech Stack
 
-Continue building your app on:
+**Frontend**
+- React.js (Next.js framework)
+- Tailwind CSS + ShadCN UI
 
-**[https://v0.dev/chat/projects/9u3chdTr00L](https://v0.dev/chat/projects/9u3chdTr00L)**
+**Backend**
+- Java (J2EE) for API development
+- SQL + JPA/Hibernate for database operations
 
-## How It Works
+**Analytics & Prediction**
+- Python for trend forecasting and rent analysis
+- Data models to support smarter housing decisions
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+---
+
+## 🔍 Problem Validation
+
+Through user testing and community research at Wilfrid Laurier University, we found:
+- Students are often scammed or misled by online listings
+- Roommate matching is a chaotic and unsafe process
+- Landlords need easier ways to reach qualified tenants
+
+Homi solves these with verified listings, compatibility data, and in-app management tools designed for student life.
+
+---
+
+## 🧑‍💼 Project Lead
+
+**Kabir Saamir**  
+Founder & Full Stack Developer  
+- Led frontend and backend development
+- Built predictive Python models
+- Validated the platform through real student feedback and collaborative testing with peers
+
+---
+
+## 🔭 Roadmap
+
+- Student verification via school emails
+- iOS and Android mobile app
+- Chat and roommate group creation
+- Partner portal for verified landlords
+- Expansion to universities across Ontario
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions from developers, designers, researchers, and students!
+
+To get started:
+1. Fork the repository
+2. Create a feature branch
+3. Submit a pull request
+
+Let’s build better housing together.
+
+---
+
+## 📫 Contact
+
+Built with passion by Kabir Saamir  
+📧 [kabir.saamir@gmail.com]  
+🌐 [LinkedIn](www.linkedin.com/in/kabir-saamir-6890b2246) | [Portfolio](https://kabirsaamir.notion.site/18a52c246deb80fe96c1d9af7cb47be7?v=1cd52c246deb80cfbc48000cdfbd2230&pvs=4)
+
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
