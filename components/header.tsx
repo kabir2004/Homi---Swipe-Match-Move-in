@@ -17,13 +17,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LogOut, User, Settings, Building, Home } from "lucide-react"
+import { LogOut, User, Settings, Building, Home, Menu } from "lucide-react"
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
   const [showEasterEgg, setShowEasterEgg] = useState(false)
   const [user, setUser] = useState<any>(null)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
 
@@ -204,6 +205,7 @@ export function Header() {
           <Logo />
         </motion.div>
 
+        {/* Desktop Navigation */}
         <div className="hidden md:flex items-center justify-center flex-1">
           <motion.div
             className="flex items-center space-x-2"
@@ -211,7 +213,7 @@ export function Header() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            {navItems.map((item, index) => (
+            {navItems.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
@@ -244,8 +246,16 @@ export function Header() {
           </motion.div>
         </div>
 
+        {/* Mobile Menu Button - Only visible on mobile */}
+        <div className="md:hidden">
+          <Button variant="ghost" size="icon" className="mr-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            <Menu className="h-6 w-6" />
+          </Button>
+        </div>
+
+        {/* Auth Buttons - Only visible on desktop */}
         <motion.div
-          className="flex items-center space-x-3"
+          className="hidden md:flex items-center space-x-3"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}

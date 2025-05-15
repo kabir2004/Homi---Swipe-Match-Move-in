@@ -153,3 +153,53 @@
 .animated-underline:hover::after {
   width: 100%;
 }
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Add bottom padding to content areas to account for mobile nav */
+  main,
+  section,
+  .content-area {
+    padding-bottom: 5rem;
+  }
+
+  /* Improve touch targets for mobile */
+  button,
+  a,
+  .interactive {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Adjust font sizes for mobile */
+  h1 {
+    font-size: 1.75rem !important;
+  }
+
+  h2 {
+    font-size: 1.5rem !important;
+  }
+
+  /* Improve form elements on mobile */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+}
+
+/* Add safe area insets for modern mobile browsers */
+@supports (padding: max(0px)) {
+  .mobile-safe-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .mobile-nav {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

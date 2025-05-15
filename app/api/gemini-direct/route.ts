@@ -1,39 +1,30 @@
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
+import { geminiChat } from "@/lib/gemini-server"
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const { message, apiKey } = await request.json()
+    const body = await request.json()
+    const { message } = body
 
-    // Use provided API key or server's API key
-    const key = apiKey || process.env.GEMINI_API_KEY || ""
-
-    if (!key) {
-      return NextResponse.json({ error: "API key is missing" }, { status: 400 })
+    if (!message) {
+      return NextResponse.json({ error: "Message is required" }, { status: 400 })
     }
 
-    const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": key,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: message || "Hello, are you working?",
-              },
-            ],
-          },
-        ],
-      }),
-    })
+    const result = await geminiChat.generateContent(message)
+    const response = await result.response
 
-    const data = await response.json()
-    return NextResponse.json(data)
+    return NextResponse.json({
+      success: true,
+      content: response.text(),
+    })
   } catch (error) {
-    console.error("Error in direct Gemini API call:", error)
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Unknown error" }, { status: 500 })
+    console.error("Error in Gemini direct API:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error occurred",
+      },
+      { status: 500 },
+    )
   }
 }

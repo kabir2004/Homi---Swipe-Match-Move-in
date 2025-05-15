@@ -3,13 +3,52 @@ import type { Metadata } from "next"
 import { GeistSans } from "geist/font/sans"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { HomiBuoyImproved } from "@/components/homi-buoy-improved"
 import { AuthProvider } from "@/contexts/auth-context-enhanced"
 import { ToastContainer } from "@/components/ui/feedback-toast"
+import { MobileNav } from "@/components/mobile-nav"
 
 export const metadata: Metadata = {
   title: "Homi - Smart Housing for Students",
   description: "Swipe. Match. Move In. Find your perfect student housing and roommates.",
+  icons: {
+    icon: [
+      {
+        url: "/homi-slug.png",
+        type: "image/png",
+        sizes: "32x32",
+      },
+      {
+        url: "/homi-slug.png",
+        type: "image/png",
+        sizes: "192x192",
+      },
+    ],
+    apple: {
+      url: "/homi-slug.png",
+      type: "image/png",
+      sizes: "180x180",
+    },
+    shortcut: "/homi-slug.png",
+  },
+  manifest: "/manifest.json",
+  openGraph: {
+    type: "website",
+    url: "https://homi.ca",
+    title: "Homi - Smart Housing for Students",
+    description: "Swipe. Match. Move In. Find your perfect student housing and roommates.",
+    siteName: "Homi",
+    images: [
+      {
+        url: "/homi-slug.png",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "Homi - Smart Housing for Students",
+    description: "Swipe. Match. Move In. Find your perfect student housing and roommates.",
+    images: ["/homi-slug.png"],
+  },
     generator: 'v0.dev'
 }
 
@@ -25,7 +64,7 @@ export default function RootLayout({
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
             {children}
             <ToastContainer />
-            <HomiBuoyImproved />
+            <MobileNav />
           </ThemeProvider>
         </AuthProvider>
       </body>

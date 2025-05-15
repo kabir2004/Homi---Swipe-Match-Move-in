@@ -45,6 +45,7 @@ export function DashboardLayout({ children, title, description, user, onLogout, 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
+            className="pb-20 md:pb-0" // Add padding at bottom for mobile nav
           >
             {children}
           </motion.div>

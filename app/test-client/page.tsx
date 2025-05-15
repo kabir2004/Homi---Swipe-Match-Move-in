@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Loader2, Send, CheckCircle, XCircle } from "lucide-react"
-import { testGeminiApiKey } from "@/lib/gemini-client"
+// No direct import needed as we'll use fetch API
 import { HomiBuoyClient } from "@/components/homi-buoy-client"
 
 export default function TestClientPage() {
@@ -13,39 +13,31 @@ export default function TestClientPage() {
   const [response, setResponse] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<"untested" | "success" | "failed">("untested")
-  const [apiKeyStatus, setApiKeyStatus] = useState<"untested" | "available" | "missing">("untested")
+  const [apiKeyStatus, setApiKeyStatus] = useState<"available" | "missing">("untested")
 
-  // Check API key status on mount
-  const checkApiKeyStatus = async () => {
-    try {
-      const response = await fetch("/api/gemini-test", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message: "API key check" }),
-      })
-
-      const data = await response.json()
-      setApiKeyStatus(data.success ? "available" : "missing")
-    } catch (error) {
-      console.error("Error checking API key status:", error)
-      setApiKeyStatus("missing")
+  // Check API key status on component mount
+  useEffect(() => {
+    const checkApiStatus = async () => {
+      try {
+        const response = await fetch("/api/test-gemini")
+        const result = await response.json()
+        setApiKeyStatus(result.success ? "available" : "missing")
+      } catch (error) {
+        console.error("Error checking API status:", error)
+        setApiKeyStatus("missing")
+      }
     }
-  }
 
-  // Call checkApiKeyStatus when component mounts
-  useState(() => {
-    checkApiKeyStatus()
-  })
+    checkApiStatus()
+  }, [])
 
-  // Test API connection
   const testDirectApi = async () => {
     setIsLoading(true)
     setConnectionStatus("untested")
 
     try {
-      const result = await testGeminiApiKey()
+      const response = await fetch("/api/test-gemini")
+      const result = await response.json()
 
       if (result.success) {
         setConnectionStatus("success")
@@ -66,7 +58,7 @@ export default function TestClientPage() {
   return (
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-4">HomiBuoy Client Test Page</h1>
-      <p className="mb-8">This page tests the client-side implementation of HomiBuoy using the Gemini API.</p>
+      <p className="mb-8">This page tests the client-side implementation of HomiBuoy using the Gemini API directly.</p>
 
       <div className="grid md:grid-cols-2 gap-8">
         <Card>
@@ -75,26 +67,20 @@ export default function TestClientPage() {
               API Key Status
               {apiKeyStatus === "available" ? (
                 <CheckCircle className="h-5 w-5 text-green-500" />
-              ) : apiKeyStatus === "missing" ? (
-                <XCircle className="h-5 w-5 text-red-500" />
               ) : (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <XCircle className="h-5 w-5 text-red-500" />
               )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="mb-4">
               {apiKeyStatus === "available"
-                ? "Server has a valid Gemini API key configured."
-                : apiKeyStatus === "missing"
-                  ? "Server is missing a valid Gemini API key."
-                  : "Checking API key status..."}
+                ? "NEXT_PUBLIC_GEMINI_API_KEY is available in environment variables."
+                : "NEXT_PUBLIC_GEMINI_API_KEY is missing from environment variables."}
             </p>
             <div className="p-4 bg-gray-50 rounded-md">
-              <p className="text-sm">
-                {apiKeyStatus === "available"
-                  ? "API key is properly configured on the server."
-                  : "Please configure a valid API key on the server."}
+              <p className="text-sm font-mono">
+                {apiKeyStatus === "available" ? "API Key is configured on the server" : "API Key is not available"}
               </p>
             </div>
           </CardContent>

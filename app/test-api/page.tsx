@@ -13,7 +13,7 @@ export default function TestApiPage() {
   const [connectionStatus, setConnectionStatus] = useState<"untested" | "success" | "failed">("untested")
   const [apiKey, setApiKey] = useState("")
 
-  // Test direct API connection via server endpoint
+  // Test direct API connection
   const testDirectApi = async () => {
     setIsLoading(true)
     setConnectionStatus("untested")
@@ -26,7 +26,6 @@ export default function TestApiPage() {
         },
         body: JSON.stringify({
           message: testMessage,
-          apiKey: apiKey || undefined,
         }),
       })
 
@@ -35,18 +34,18 @@ export default function TestApiPage() {
 
       if (data.error) {
         setConnectionStatus("failed")
-        setResponse(`Error: ${data.error.message || JSON.stringify(data.error)}`)
-      } else if (data.candidates && data.candidates[0].content.parts[0].text) {
+        setResponse(`Error: ${data.error}`)
+      } else if (data.content) {
         setConnectionStatus("success")
-        setResponse(data.candidates[0].content.parts[0].text)
+        setResponse(data.content)
       } else {
         setConnectionStatus("failed")
-        setResponse("Received response but couldn't find text content")
+        setResponse("Received response but couldn't find content")
       }
     } catch (error) {
       console.error("Error testing direct API:", error)
       setConnectionStatus("failed")
-      setResponse(`Error: ${error instanceof Error ? error.message : "Unknown error"}`)
+      setResponse(`Error: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
@@ -84,7 +83,7 @@ export default function TestApiPage() {
     } catch (error) {
       console.error("Error testing API endpoint:", error)
       setConnectionStatus("failed")
-      setResponse(`Error: ${error instanceof Error ? error.message : "Unknown error"}`)
+      setResponse(`Error: ${error.message}`)
     } finally {
       setIsLoading(false)
     }
@@ -101,17 +100,6 @@ export default function TestApiPage() {
             <CardTitle>Test Direct API Connection</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">API Key (optional)</label>
-              <Input
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                placeholder="Enter your Gemini API key"
-                type="password"
-              />
-              <p className="text-xs text-gray-500 mt-1">If left empty, will use server's API key</p>
-            </div>
-
             <div>
               <label className="block text-sm font-medium mb-1">Test Message</label>
               <Input

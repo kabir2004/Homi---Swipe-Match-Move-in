@@ -1,8 +1,47 @@
 // This file is for client-side usage of Gemini
-// It does NOT contain the API key - all API calls go through server endpoints
+// It uses server API endpoints instead of direct API calls with keys
+
+// Check if API key is valid by calling the server endpoint
+export async function testGeminiApiKey() {
+  try {
+    const response = await fetch("/api/test-gemini")
+    return await response.json()
+  } catch (error) {
+    console.error("Error testing API key:", error)
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error",
+    }
+  }
+}
+
+// Generate chat response by calling the server endpoint
+export async function generateChatResponse(messages: { role: string; content: string }[]) {
+  try {
+    const response = await fetch("/api/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ messages }),
+    })
+
+    const data = await response.json()
+
+    if (data.error) {
+      console.error("Error from chat API:", data.error)
+      return getFallbackResponse(messages[messages.length - 1]?.content || "")
+    }
+
+    return data.content
+  } catch (error) {
+    console.error("Error generating chat response:", error)
+    return getFallbackResponse(messages[messages.length - 1]?.content || "")
+  }
+}
 
 // Fallback response when API is unavailable
-const getFallbackResponse = (query: string) => {
+function getFallbackResponse(query: string) {
   // Simple keyword-based responses for common questions
   const lowerQuery = query.toLowerCase()
 
@@ -20,52 +59,4 @@ const getFallbackResponse = (query: string) => {
 
   // Default fallback
   return "I'm currently operating in offline mode due to API connection issues. For the best experience, please try again later when our AI service is back online. In the meantime, you can browse listings and potential roommates directly through the app."
-}
-
-// Client-side function to test the API key via server endpoint
-export async function testGeminiApiKey(apiKey?: string) {
-  try {
-    const response = await fetch("/api/gemini-test", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        message: "Hello, are you working?",
-        ...(apiKey && { apiKey }),
-      }),
-    })
-
-    return await response.json()
-  } catch (error) {
-    console.error("Error testing API:", error)
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Unknown error",
-    }
-  }
-}
-
-// Client-side function to generate chat responses via server endpoint
-export async function generateChatResponse(messages: { role: string; content: string }[]) {
-  try {
-    const response = await fetch("/api/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ messages }),
-    })
-
-    const data = await response.json()
-
-    if (data.error) {
-      return getFallbackResponse(messages[messages.length - 1]?.content || "")
-    }
-
-    return data.content || data.message
-  } catch (error) {
-    console.error("Error generating chat response:", error)
-    return getFallbackResponse(messages[messages.length - 1]?.content || "")
-  }
 }

@@ -60,7 +60,7 @@ export default function UniversitiesPage() {
               // Use our utility function to get a valid image source
               const campusImageSrc = getImageWithFallback(
                 university.campusImage,
-                null,
+                `/campus/${university.id}-campus.jpg`,
                 university.name + " campus",
                 1200,
                 800,
@@ -99,14 +99,11 @@ export default function UniversitiesPage() {
 
                     <div className="relative h-48 overflow-hidden">
                       <Image
-                        src={
-                          campusImageSrc && campusImageSrc.trim() !== ""
-                            ? campusImageSrc
-                            : `/placeholder.svg?height=800&width=1200&query=${encodeURIComponent(university.name + " campus")}`
-                        }
+                        src={campusImageSrc || "/placeholder.svg"}
                         alt={`${university.name} Campus`}
                         fill
                         className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        onError={(e) => handleImageError(e, university.name + " campus", 1200, 800)}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
 

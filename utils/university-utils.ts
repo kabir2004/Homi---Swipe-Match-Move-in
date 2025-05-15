@@ -1,12 +1,10 @@
 import type { University } from "@/types"
 
-// Get the campus image for a university
+// Get the campus image for a university with multiple fallbacks
 export function getCampusImage(universityId: string): string {
-  // First try the specific campus image format
-  const specificPath = `/campus/${universityId}-campus.jpg`
-
-  // Fallback paths in order of preference
-  const fallbackPaths = [
+  // Try multiple paths in order of preference
+  const imagePaths = [
+    `/campus/${universityId}-campus.jpg`,
     `/campus/${universityId}-campus.webp`,
     `/campus/${universityId}-campus.png`,
     `/universities/${universityId}3d.png`,
@@ -15,15 +13,9 @@ export function getCampusImage(universityId: string): string {
   // Generic fallback with university ID
   const genericFallback = `/placeholder.svg?height=800&width=1200&query=${encodeURIComponent(universityId + " university campus")}`
 
-  // Try to find an existing image
-  try {
-    // In a real app, we would check if the file exists
-    // For now, we'll just return the specific path and let the Image component handle errors
-    return specificPath
-  } catch (error) {
-    console.error(`Error getting campus image for ${universityId}:`, error)
-    return genericFallback
-  }
+  // In a real app, we would check if the file exists
+  // For now, we'll just return the first path and let the Image component handle errors with onError
+  return imagePaths[0]
 }
 
 // Get a university by ID
