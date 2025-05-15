@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
@@ -8,13 +8,45 @@ import { Header } from "@/components/header"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { ArrowRight, Check, User2, Home, Search, MessageCircle, Calendar, Shield, MapPin } from "lucide-react"
+import {
+  ArrowRight,
+  Check,
+  User2,
+  Home,
+  Search,
+  MessageCircle,
+  Calendar,
+  Shield,
+  MapPin,
+  ExternalLink,
+} from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { ONTARIO_UNIVERSITIES } from "@/types"
 import type { Listing } from "@/types"
 
 export default function HowItWorksPage() {
   const [activeTab, setActiveTab] = useState("students")
+  const [isTallyLoaded, setIsTallyLoaded] = useState(false)
+
+  // Load Tally script
+  useEffect(() => {
+    const script = document.createElement("script")
+    script.src = "https://tally.so/widgets/embed.js"
+    script.async = true
+    script.onload = () => setIsTallyLoaded(true)
+    document.body.appendChild(script)
+
+    return () => {
+      document.body.removeChild(script)
+    }
+  }, [])
+
+  // Initialize Tally when script is loaded
+  useEffect(() => {
+    if (isTallyLoaded && window.Tally) {
+      window.Tally.loadEmbeds()
+    }
+  }, [isTallyLoaded])
 
   // Sample listings for universities
   const universityListings: Record<string, Listing[]> = {
@@ -444,7 +476,101 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      {/* Homi in Action Section - Updated to use image instead of video */}
+      {/* Beta Signup Section */}
+      <section className="py-16 bg-gradient-to-br from-primary-50 to-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                viewport={{ once: true }}
+                className="text-center md:text-left"
+              >
+                <Badge className="mb-4 bg-primary/10 text-primary border-primary/20 px-4 py-1.5">Limited Access</Badge>
+                <h2 className="text-3xl md:text-4xl font-bold mb-4">Join the Homi Beta</h2>
+                <p className="text-lg text-gray-600 mb-6">
+                  Be among the first to experience the future of student housing. Sign up now to get early access and
+                  exclusive perks when we launch on July 15, 2025.
+                </p>
+                <ul className="space-y-3 mb-8">
+                  <li className="flex items-start">
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-3 mt-0.5 shrink-0">
+                      <Check className="h-3.5 w-3.5 text-green-600" />
+                    </div>
+                    <span className="text-gray-700">Early access to all premium features</span>
+                  </li>
+                  <li className="flex items-start">
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-3 mt-0.5 shrink-0">
+                      <Check className="h-3.5 w-3.5 text-green-600" />
+                    </div>
+                    <span className="text-gray-700">Priority matching with top listings</span>
+                  </li>
+                  <li className="flex items-start">
+                    <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center mr-3 mt-0.5 shrink-0">
+                      <Check className="h-3.5 w-3.5 text-green-600" />
+                    </div>
+                    <span className="text-gray-700">Exclusive discounts on first month's rent</span>
+                  </li>
+                </ul>
+                <div className="hidden md:block">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="bg-primary hover:bg-primary-600 text-white rounded-full group overflow-hidden"
+                  >
+                    <a href="https://tally.so/r/mDy28p" target="_blank" rel="noopener noreferrer">
+                      <span className="relative z-10 flex items-center">
+                        Sign Up for Beta Access
+                        <ExternalLink className="ml-2 h-4 w-4" />
+                      </span>
+                    </a>
+                  </Button>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                viewport={{ once: true }}
+                className="bg-white rounded-xl shadow-lg overflow-hidden"
+              >
+                <div className="p-1">
+                  <iframe
+                    data-tally-src="https://tally.so/embed/mDy28p?alignLeft=1&hideTitle=1&transparentBackground=1"
+                    loading="lazy"
+                    width="100%"
+                    height="500"
+                    frameBorder="0"
+                    marginHeight={0}
+                    marginWidth={0}
+                    title="Join the Homi Beta"
+                    className="rounded-lg"
+                  ></iframe>
+                </div>
+                <div className="md:hidden p-6 pt-0 text-center">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="bg-primary hover:bg-primary-600 text-white rounded-full group overflow-hidden mt-4 w-full"
+                  >
+                    <a href="https://tally.so/r/mDy28p" target="_blank" rel="noopener noreferrer">
+                      <span className="relative z-10 flex items-center justify-center">
+                        Sign Up for Beta Access
+                        <ExternalLink className="ml-2 h-4 w-4" />
+                      </span>
+                    </a>
+                  </Button>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Homi in Action Section */}
       <section className="py-16 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -552,7 +678,7 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
-      {/* University Listings Section - New section */}
+      {/* University Listings Section */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -565,11 +691,38 @@ export default function HowItWorksPage() {
 
           <Tabs defaultValue="uoft" className="w-full">
             <TabsList className="flex flex-wrap justify-center mb-8 gap-2">
-              {ONTARIO_UNIVERSITIES.slice(0, 4).map((uni) => (
-                <TabsTrigger key={uni.id} value={uni.id} className="px-4 py-2">
-                  {uni.shortName}
-                </TabsTrigger>
-              ))}
+              {Array.isArray(ONTARIO_UNIVERSITIES) && ONTARIO_UNIVERSITIES.length > 0 ? (
+                ONTARIO_UNIVERSITIES.map((uni) => (
+                  <TabsTrigger key={uni.id} value={uni.id} className="px-4 py-2">
+                    {uni.shortName || uni.name}
+                  </TabsTrigger>
+                ))
+              ) : (
+                // Fallback tabs if ONTARIO_UNIVERSITIES is empty or not an array
+                <>
+                  <TabsTrigger value="uoft" className="px-4 py-2">
+                    UofT
+                  </TabsTrigger>
+                  <TabsTrigger value="waterloo" className="px-4 py-2">
+                    Waterloo
+                  </TabsTrigger>
+                  <TabsTrigger value="western" className="px-4 py-2">
+                    Western
+                  </TabsTrigger>
+                  <TabsTrigger value="queens" className="px-4 py-2">
+                    Queen's
+                  </TabsTrigger>
+                  <TabsTrigger value="mcmaster" className="px-4 py-2">
+                    McMaster
+                  </TabsTrigger>
+                  <TabsTrigger value="york" className="px-4 py-2">
+                    York
+                  </TabsTrigger>
+                  <TabsTrigger value="laurier" className="px-4 py-2">
+                    Laurier
+                  </TabsTrigger>
+                </>
+              )}
             </TabsList>
 
             {Object.entries(universityListings).map(([uniId, listings]) => (
@@ -585,10 +738,19 @@ export default function HowItWorksPage() {
                       <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border border-gray-100 h-full flex flex-col">
                         <div className="relative h-48 w-full">
                           <Image
-                            src={listing.photos[0] || "/placeholder.svg"}
-                            alt={listing.title}
+                            src={
+                              uniId
+                                ? `/campus/${uniId}-campus.jpg`
+                                : `/placeholder.svg?height=200&width=400&text=Campus+Image`
+                            }
+                            alt={listings[0]?.title || "Campus Image"}
                             fill
                             className="object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.onerror = null // Prevent infinite loop
+                              target.src = `/placeholder.svg?height=200&width=400&text=Campus+Image`
+                            }}
                           />
                           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
                             <h3 className="text-white font-bold">{listing.title}</h3>
@@ -707,6 +869,73 @@ export default function HowItWorksPage() {
         </div>
       </section>
 
+      {/* Roadmap Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <Badge className="mb-4 bg-blue-100 text-blue-700 border-blue-200 px-4 py-1.5">Looking Forward</Badge>
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Our Roadmap</h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              We're constantly improving Homi to make finding student housing even easier
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-4 gap-8">
+            <div className="bg-white rounded-xl p-8 shadow-md border border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <Badge className="bg-green-100 text-green-700 border-green-200">Now Available</Badge>
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <Check className="h-5 w-5 text-green-600" />
+                </div>
+              </div>
+              <h3 className="text-xl font-bold mb-3">AI-Powered HomiBuoy</h3>
+              <p className="text-gray-600">
+                Our AI assistant helps answer all your housing and roommate questions instantly.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl p-8 shadow-md border border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <Badge className="bg-blue-100 text-blue-700 border-blue-200">Coming Q3 2025</Badge>
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <User2 className="h-5 w-5 text-blue-600" />
+                </div>
+              </div>
+              <h3 className="text-xl font-bold mb-3">Enhanced Roommate Matching</h3>
+              <p className="text-gray-600">
+                We're improving our AI algorithm to provide even more accurate roommate matches based on compatibility.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl p-8 shadow-md border border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <Badge className="bg-purple-100 text-purple-700 border-purple-200">Coming Q4 2025</Badge>
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                  <Home className="h-5 w-5 text-purple-600" />
+                </div>
+              </div>
+              <h3 className="text-xl font-bold mb-3">Virtual Tours</h3>
+              <p className="text-gray-600">
+                Soon you'll be able to take virtual tours of properties without leaving the Homi platform.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl p-8 shadow-md border border-gray-100">
+              <div className="flex items-center justify-between mb-4">
+                <Badge className="bg-amber-100 text-amber-700 border-amber-200">Coming 2026</Badge>
+                <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center">
+                  <Calendar className="h-5 w-5 text-amber-600" />
+                </div>
+              </div>
+              <h3 className="text-xl font-bold mb-3">Rental Payments & Management</h3>
+              <p className="text-gray-600">
+                We're building tools to help students and landlords manage rent payments and maintenance requests.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-16">
         <div className="container mx-auto px-4">
@@ -748,8 +977,8 @@ export default function HowItWorksPage() {
                   variant="secondary"
                   className="bg-white text-primary hover:bg-gray-100 rounded-full px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all transform hover:-translate-y-1"
                 >
-                  <Link href="/quiz">
-                    Get Started Now
+                  <a href="https://tally.so/r/mDy28p" target="_blank" rel="noopener noreferrer">
+                    Join the Beta
                     <motion.span
                       initial={{ x: 0 }}
                       whileHover={{ x: 5 }}
@@ -757,7 +986,7 @@ export default function HowItWorksPage() {
                     >
                       <ArrowRight className="ml-2 h-5 w-5" />
                     </motion.span>
-                  </Link>
+                  </a>
                 </Button>
               </motion.div>
             </motion.div>

@@ -1,527 +1,281 @@
+// This file will be modified to use real data from the database
 import type { Listing, Roommate } from "@/types"
+import { getSupabaseClient } from "@/lib/supabase"
 
-// University names for reference
-const universities = [
-  "University of Toronto",
-  "University of Waterloo",
-  "Western University",
-  "Queen's University",
-  "McMaster University",
-  "Toronto Metropolitan University",
-  "York University",
-  "Wilfrid Laurier University",
-]
-
-// Neighborhoods by city
-const neighborhoods = {
-  Toronto: [
-    "The Annex",
-    "Kensington Market",
-    "Harbourfront",
-    "Liberty Village",
-    "Yorkville",
-    "Chinatown",
-    "Leslieville",
-    "Cabbagetown",
-    "Bloor West Village",
-    "Danforth",
-  ],
-  Waterloo: [
-    "Uptown Waterloo",
-    "University District",
-    "Lakeshore",
-    "Beechwood",
-    "Eastbridge",
-    "Laurelwood",
-    "Lincoln Heights",
-    "Westvale",
-  ],
-  London: ["Downtown London", "Old North", "Masonville", "Byron", "Westmount", "Oakridge", "Old South", "Woodfield"],
-  Kingston: ["Downtown Kingston", "Queen's Campus", "Portsmouth Village", "Alwington", "Kingscourt", "Strathcona Park"],
-  Hamilton: ["Westdale", "Ainslie Wood", "Durand", "Kirkendall", "Strathcona", "Corktown", "Beasley"],
+// Helper function to calculate match ratio
+export function calculateMatchRatio(index: number, total: number): string {
+  const viewed = index + 1
+  const percentage = total > 0 ? Math.round((viewed / total) * 100) : 0
+  return `${viewed}/${total} (${percentage}%)`
 }
 
-// Street names by city
-const streets = {
-  Toronto: [
-    "Bloor Street",
-    "Spadina Avenue",
-    "College Street",
-    "Bathurst Street",
-    "Queen Street",
-    "King Street",
-    "Dundas Street",
-    "Bay Street",
-    "Yonge Street",
-    "St. George Street",
-  ],
-  Waterloo: [
-    "University Avenue",
-    "King Street",
-    "Columbia Street",
-    "Albert Street",
-    "Lester Street",
-    "Phillip Street",
-    "Hazel Street",
-    "Hickory Street",
-  ],
-  London: [
-    "Richmond Street",
-    "Oxford Street",
-    "Wharncliffe Road",
-    "Western Road",
-    "Sarnia Road",
-    "Fanshawe Park Road",
-    "Wonderland Road",
-  ],
-  Kingston: [
-    "Princess Street",
-    "Johnson Street",
-    "Earl Street",
-    "Brock Street",
-    "Division Street",
-    "University Avenue",
-    "King Street",
-  ],
-  Hamilton: [
-    "Main Street",
-    "King Street",
-    "Sterling Street",
-    "Emerson Street",
-    "Forsyth Avenue",
-    "Dalewood Avenue",
-    "Longwood Road",
-  ],
+// Update the fetchRealListings function to handle empty data better
+export async function fetchRealListings(limit = 100, filters: any = {}): Promise<Listing[]> {
+  try {
+    const supabase = getSupabaseClient()
+    let query = supabase.from("listings").select("*").limit(limit)
+
+    // Apply filters if provided
+    if (filters.university) {
+      query = query.ilike("university", `%${filters.university}%`)
+    }
+
+    if (filters.priceRange && Array.isArray(filters.priceRange) && filters.priceRange.length === 2) {
+      if (filters.priceRange[0] > 0) {
+        query = query.gte("price_min", filters.priceRange[0])
+      }
+      if (filters.priceRange[1] < 3000) {
+        query = query.lte("price_max", filters.priceRange[1])
+      }
+    }
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error("Error fetching listings:", error)
+      return []
+    }
+
+    // If no data is returned, use the fallback generator
+    if (!data || data.length === 0) {
+      console.log("No listings found in database, using generated data")
+      return generateListingsFallback(limit)
+    }
+
+    // Transform the data to match our Listing type
+    return (data || []).map((item: any) => {
+      // Handle price as either a single value or a range
+      const price = typeof item.price === "number" ? item.price : item.price_min || 1000
+
+      return {
+        id: item.id || `listing-${Math.random().toString(36).substring(2, 9)}`,
+        title: item.title || "Student Housing",
+        location: item.location || "Near Campus",
+        price: price,
+        photos: item.photos || ["/campus-commons.png"],
+        features: item.features || {
+          bedrooms: 1,
+          bathrooms: 1,
+          square_feet: 500,
+          amenities: ["Wi-Fi", "Laundry"],
+        },
+        match_tags: item.match_tags || ["Student Housing"],
+        university_distance: {
+          [item.university || "University of Toronto"]: item.walk_distance || 1.5,
+        },
+        created_at: item.created_at || new Date().toISOString(),
+        description: `Convenient student housing near ${item.university || "campus"}. ${
+          item.is_room_only ? "Room rental with shared facilities." : "Full unit available."
+        }`,
+        university: item.university || "University of Toronto",
+        city: item.city || "Toronto",
+        latitude: item.latitude || 43.6532,
+        longitude: item.longitude || -79.3832,
+        walk_distance: item.walk_distance || 1.5,
+        drive_distance: item.drive_distance || 3.0,
+        maps_url: item.maps_url || "https://maps.google.com",
+        is_room_only: item.is_room_only || false,
+      }
+    })
+  } catch (error) {
+    console.error("Error in fetchRealListings:", error)
+    return generateListingsFallback(limit)
+  }
 }
 
-// Listing titles
-const listingTitles = [
-  "Cozy Studio Apartment",
-  "Modern 1BR with Balcony",
-  "Spacious 2BR near Campus",
-  "Renovated 3BR Townhouse",
-  "Luxury Student Apartment",
-  "Bright Studio with Utilities Included",
-  "Furnished 1BR in Student Building",
-  "Shared Student House",
-  "Newly Renovated Basement Apartment",
-  "Penthouse with Amazing Views",
-  "Budget-Friendly Studio",
-  "Pet-Friendly 2BR Apartment",
-  "All-Inclusive Student Suite",
-  "Character Home with 4 Bedrooms",
-  "Executive Condo near University",
-]
-
-// Listing amenities
-const amenities = [
-  "In-unit Laundry",
-  "Dishwasher",
-  "Air Conditioning",
-  "Balcony",
-  "Gym",
-  "Pool",
-  "Parking",
-  "Pet Friendly",
-  "Furnished",
-  "Utilities Included",
-  "High-Speed Internet",
-  "Security System",
-  "Bike Storage",
-  "Study Room",
-  "Rooftop Patio",
-  "Concierge",
-  "Storage Locker",
-  "Smart Home Features",
-  "Hardwood Floors",
-  "Stainless Steel Appliances",
-]
-
-// Listing tags
-const listingTags = [
-  "Close to Campus",
-  "Public Transit",
-  "Quiet Area",
-  "Near Restaurants",
-  "Grocery Nearby",
-  "Student Housing",
-  "All Inclusive",
-  "Furnished",
-  "Modern",
-  "Luxury",
-  "Budget Friendly",
-  "Utilities Included",
-  "Recently Renovated",
-  "Roommate Friendly",
-  "Near Shops",
-  "Near Parks",
-  "Walkable Area",
-  "Bike Friendly",
-  "Safe Neighborhood",
-  "Energy Efficient",
-]
-
-// Transit options
-const transitOptions = [
-  "5 min walk to subway station",
-  "Bus stop right outside",
-  "Streetcar stop nearby",
-  "10 min walk to train station",
-  "Bike lanes on adjacent streets",
-  "University shuttle stop nearby",
-  "Car share parking on premises",
-  "15 min bus ride to campus",
-  "Direct bus to downtown",
-  "Subway connection to campus",
-]
-
-// Roommate names
-const roomateFirstNames = [
-  "Alex",
-  "Jordan",
-  "Taylor",
-  "Morgan",
-  "Casey",
-  "Riley",
-  "Avery",
-  "Quinn",
-  "Jamie",
-  "Skyler",
-  "Sam",
-  "Charlie",
-  "Hayden",
-  "Dakota",
-  "Reese",
-  "Finley",
-  "Blake",
-  "Parker",
-  "Cameron",
-  "Rowan",
-  "Sasha",
-  "Jesse",
-  "Kai",
-  "Remy",
-  "Ari",
-  "Emerson",
-  "Phoenix",
-  "Sage",
-  "Tatum",
-  "Shawn",
-  "Aiden",
-  "Emma",
-  "Noah",
-  "Olivia",
-  "Liam",
-  "Sophia",
-  "Jackson",
-  "Mia",
-  "Lucas",
-  "Isabella",
-  "Ethan",
-  "Amelia",
-  "Mason",
-  "Harper",
-  "Logan",
-  "Evelyn",
-  "Elijah",
-  "Abigail",
-  "Oliver",
-  "Emily",
-]
-
-const roomateLastNames = [
-  "Smith",
-  "Johnson",
-  "Williams",
-  "Brown",
-  "Jones",
-  "Garcia",
-  "Miller",
-  "Davis",
-  "Rodriguez",
-  "Martinez",
-  "Hernandez",
-  "Lopez",
-  "Gonzalez",
-  "Wilson",
-  "Anderson",
-  "Thomas",
-  "Taylor",
-  "Moore",
-  "Jackson",
-  "Martin",
-  "Lee",
-  "Perez",
-  "Thompson",
-  "White",
-  "Harris",
-  "Sanchez",
-  "Clark",
-  "Ramirez",
-  "Lewis",
-  "Robinson",
-  "Walker",
-  "Young",
-  "Allen",
-  "King",
-  "Wright",
-  "Scott",
-  "Torres",
-  "Nguyen",
-  "Hill",
-  "Flores",
-  "Green",
-  "Adams",
-  "Nelson",
-  "Baker",
-  "Hall",
-  "Rivera",
-  "Campbell",
-  "Mitchell",
-  "Carter",
-  "Roberts",
-]
-
-// University programs
-const programs = [
-  "Computer Science",
-  "Engineering",
-  "Business Administration",
-  "Psychology",
-  "Biology",
-  "English Literature",
-  "Political Science",
-  "Economics",
-  "Mathematics",
-  "Chemistry",
-  "Physics",
-  "Sociology",
-  "History",
-  "Art & Design",
-  "Communications",
-  "Nursing",
-  "Education",
-  "Environmental Science",
-  "Architecture",
-  "Music",
-  "Film Studies",
-  "Philosophy",
-  "Anthropology",
-  "Kinesiology",
-  "Health Sciences",
-]
-
-// Roommate tags
-const roommateTags = [
-  "Early Riser",
-  "Night Owl",
-  "Clean",
-  "Organized",
-  "Quiet",
-  "Social",
-  "Studious",
-  "Athletic",
-  "Artistic",
-  "Foodie",
-  "Gamer",
-  "Musician",
-  "Vegan/Vegetarian",
-  "Pet Owner",
-  "International Student",
-  "Grad Student",
-  "Non-Smoker",
-  "Eco-Friendly",
-  "Tech Enthusiast",
-  "Bookworm",
-]
-
-// Roommate interests
-const interests = [
-  "Reading",
-  "Cooking",
-  "Hiking",
-  "Photography",
-  "Video Games",
-  "Movies",
-  "Music",
-  "Sports",
-  "Yoga",
-  "Travel",
-  "Art",
-  "Dancing",
-  "Cycling",
-  "Running",
-  "Swimming",
-  "Board Games",
-  "Volunteering",
-  "Coding",
-  "Gardening",
-  "Meditation",
-]
-
-// Roommate bios
-const bioParts = {
-  intro: [
-    "Hey there! I'm a",
-    "Hi! I'm currently studying",
-    "Hello future roommates! I'm a",
-    "Nice to meet you! I'm a",
-    "Looking for a great roommate? I'm a",
-  ],
-  middle: [
-    "student who loves",
-    "student passionate about",
-    "student balancing academics and",
-    "student who enjoys",
-    "student focusing on academics while enjoying",
-  ],
-  activities: [
-    "exploring the city on weekends",
-    "trying new restaurants and cafes",
-    "staying active through sports and fitness",
-    "attending campus events and activities",
-    "quiet evenings with a good book or movie",
-  ],
-  roommate: [
-    "I'm looking for a roommate who is respectful of space and clean.",
-    "Hoping to find a roommate who shares similar interests but also respects privacy.",
-    "Ideal roommate would be friendly, clean, and considerate.",
-    "Looking for someone who is organized and communicative.",
-    "Would love to live with someone who is both studious and social.",
-  ],
-}
-
-// Helper functions
-function getRandomElement<T>(array: T[]): T {
-  return array[Math.floor(Math.random() * array.length)]
-}
-
-function getRandomElements<T>(array: T[], count: number): T[] {
-  const shuffled = [...array].sort(() => 0.5 - Math.random())
-  return shuffled.slice(0, count)
-}
-
-function getRandomInt(min: number, max: number): number {
-  return Math.floor(Math.random() * (max - min + 1)) + min
-}
-
-function getRandomDate(start: Date, end: Date): string {
-  const date = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()))
-  return date.toISOString().split("T")[0]
-}
-
-function generateRandomBio(): string {
-  return `${getRandomElement(bioParts.intro)} ${getRandomElement(programs)} ${getRandomElement(bioParts.middle)} ${getRandomElement(bioParts.activities)}. ${getRandomElement(bioParts.roommate)}`
-}
-
-function getRandomLocation(city: string): string {
-  const neighborhood = getRandomElement(neighborhoods[city as keyof typeof neighborhoods] || ["Downtown"])
-  const street = getRandomElement(streets[city as keyof typeof streets] || ["Main Street"])
-  return `${street}, ${neighborhood}, ${city}`
-}
-
-function getCityFromUniversity(university: string): string {
-  if (university.includes("Toronto") || university.includes("York")) return "Toronto"
-  if (university.includes("Waterloo") || university.includes("Laurier")) return "Waterloo"
-  if (university.includes("Western")) return "London"
-  if (university.includes("Queen's")) return "Kingston"
-  if (university.includes("McMaster")) return "Hamilton"
-  return "Toronto" // Default
-}
-
-// Generate listings
-export function generateListings(count = 50): Listing[] {
+// Add a fallback generator function
+function generateListingsFallback(count = 10): Listing[] {
   const listings: Listing[] = []
-  const now = new Date()
-  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate())
+  const universities = [
+    "University of Toronto",
+    "Western University",
+    "Queen's University",
+    "McMaster University",
+    "York University",
+  ]
+  const locations = ["Near Campus", "Downtown", "West End", "East Side", "North Campus"]
+  const amenities = ["Wi-Fi", "Laundry", "Gym", "Parking", "Air Conditioning", "Dishwasher", "Furnished"]
 
   for (let i = 0; i < count; i++) {
-    const university = getRandomElement(universities)
-    const city = getCityFromUniversity(university)
-    const location = getRandomLocation(city)
-    const bedrooms = Math.random() > 0.2 ? getRandomInt(1, 4) : 0 // 20% chance of studio (0 BR)
-    const bathrooms = bedrooms === 0 ? 1 : getRandomInt(1, bedrooms + 1)
-    const squareFeet = bedrooms === 0 ? getRandomInt(300, 500) : getRandomInt(500, 300 * (bedrooms + 1))
+    const university = universities[Math.floor(Math.random() * universities.length)]
+    const bedrooms = Math.floor(Math.random() * 4) + 1
+    const price = 800 + bedrooms * 200 + Math.floor(Math.random() * 300)
 
-    // Calculate price based on bedrooms, location, and some randomness
-    let basePrice = 0
-    if (city === "Toronto") basePrice = 1800
-    else if (city === "Waterloo") basePrice = 1200
-    else if (city === "London") basePrice = 1100
-    else if (city === "Kingston") basePrice = 1300
-    else if (city === "Hamilton") basePrice = 1400
-    else basePrice = 1500
-
-    const price = Math.round((basePrice + bedrooms * 400 + (Math.random() * 300 - 150)) / 50) * 50
-
-    // University distances
-    const universityDistance: Record<string, number> = {}
-    universityDistance[university.split(" ").slice(-1)[0]] = Number.parseFloat((Math.random() * 3).toFixed(1))
-
-    // If in Waterloo, add distance to both universities
-    if (city === "Waterloo") {
-      universityDistance["Waterloo"] = Number.parseFloat((Math.random() * 3).toFixed(1))
-      universityDistance["Laurier"] = Number.parseFloat((Math.random() * 3).toFixed(1))
-    }
-
-    const listing: Listing = {
+    listings.push({
       id: `listing-${i + 1}`,
-      title: getRandomElement(listingTitles),
-      location,
-      price,
-      photos: [`/placeholder.svg?height=400&width=600&text=Listing+${i + 1}`],
+      title: `${bedrooms}BR Apartment near ${university}`,
+      location: locations[Math.floor(Math.random() * locations.length)],
+      price: price,
+      photos: ["/campus-commons.png"],
       features: {
-        bedrooms,
-        bathrooms,
-        square_feet: squareFeet,
-        amenities: getRandomElements(amenities, getRandomInt(3, 8)),
+        bedrooms: bedrooms,
+        bathrooms: Math.ceil(bedrooms / 2),
+        square_feet: 400 + bedrooms * 200,
+        amenities: amenities.slice(0, Math.floor(Math.random() * 4) + 2),
       },
-      match_tags: getRandomElements(listingTags, getRandomInt(3, 6)),
-      university_distance: universityDistance,
-      created_at: getRandomDate(sixMonthsAgo, now),
-      description: `This ${bedrooms === 0 ? "studio" : bedrooms + " bedroom"} apartment is located in ${location}, just ${universityDistance[Object.keys(universityDistance)[0]]} km from ${university}. It features ${squareFeet} square feet of living space with ${bathrooms} bathroom${bathrooms > 1 ? "s" : ""}.`,
-      neighborhood: `Located in the ${getRandomElement(neighborhoods[city as keyof typeof neighborhoods] || ["Downtown"])} area, you'll be close to shops, restaurants, and public transit.`,
-      transit_options: getRandomElements(transitOptions, getRandomInt(2, 4)),
-    }
-
-    listings.push(listing)
+      match_tags: ["Student Housing", bedrooms > 1 ? "Shared" : "Private", price < 1200 ? "Budget Friendly" : "Luxury"],
+      university_distance: {
+        [university]: 0.5 + Math.random() * 2,
+      },
+      created_at: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)).toISOString(),
+      description: `Comfortable ${bedrooms} bedroom apartment near ${university}. Great for students!`,
+      university: university,
+      city: university.includes("Toronto") ? "Toronto" : university.includes("Western") ? "London" : "Kingston",
+      latitude: 43.6532 + (Math.random() - 0.5) * 0.1,
+      longitude: -79.3832 + (Math.random() - 0.5) * 0.1,
+      walk_distance: 0.5 + Math.random() * 2,
+      drive_distance: 1 + Math.random() * 3,
+      maps_url: "https://maps.google.com",
+      is_room_only: bedrooms === 1 ? Math.random() > 0.5 : false,
+    })
   }
 
   return listings
 }
 
-// Generate roommates
-export function generateRoommates(count = 50): Roommate[] {
+// Keep the generateListings function as a fallback, but it will use fetchRealListings first
+export function generateListings(count = 10): Listing[] {
+  // This is now just a placeholder that returns an empty array
+  // We'll use fetchRealListings instead
+  return []
+}
+
+// Add personality traits
+const personalityTraits = [
+  "Outgoing",
+  "Reserved",
+  "Organized",
+  "Spontaneous",
+  "Analytical",
+  "Creative",
+  "Practical",
+  "Ambitious",
+  "Relaxed",
+  "Energetic",
+]
+
+// Add study habits
+const studyHabits = [
+  "Morning Studier",
+  "Night Owl",
+  "Group Study",
+  "Solo Study",
+  "Library Focused",
+  "Home Studier",
+  "Consistent Schedule",
+  "Cramming",
+]
+
+// Keep the generateRoommates function for now
+export function generateRoommates(count = 10): Roommate[] {
+  // This function remains unchanged as we don't have real roommate data yet
+  const universities = [
+    "University of Toronto",
+    "York University",
+    "McMaster University",
+    "Western University",
+    "Queen's University",
+    "University of Waterloo",
+    "Wilfrid Laurier University",
+  ]
+
+  const programs = [
+    "Computer Science",
+    "Engineering",
+    "Business",
+    "Psychology",
+    "Biology",
+    "English",
+    "History",
+    "Mathematics",
+    "Physics",
+    "Chemistry",
+  ]
+
+  const tags = [
+    "Early Riser",
+    "Night Owl",
+    "Clean",
+    "Quiet",
+    "Social",
+    "Studious",
+    "Athletic",
+    "Artistic",
+    "Foodie",
+    "Gamer",
+    "Pet Friendly",
+    "Non-Smoker",
+    "Vegetarian",
+    "International Student",
+  ]
+
+  const interests = [
+    "Reading",
+    "Gaming",
+    "Cooking",
+    "Sports",
+    "Music",
+    "Movies",
+    "Hiking",
+    "Photography",
+    "Travel",
+    "Art",
+    "Dancing",
+    "Yoga",
+    "Gym",
+    "Volunteering",
+  ]
+
   const roommates: Roommate[] = []
-  const now = new Date()
-  const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate())
 
   for (let i = 0; i < count; i++) {
-    const firstName = getRandomElement(roomateFirstNames)
-    const lastName = getRandomElement(roomateLastNames)
-    const name = `${firstName} ${lastName}`
-    const university = getRandomElement(universities)
-    const program = getRandomElement(programs)
-    const year = getRandomInt(1, 5)
-    const matchScore = getRandomInt(60, 98)
+    const id = `roommate-${i + 1}`
+    const name = `Student ${i + 1}`
+    const university = universities[Math.floor(Math.random() * universities.length)]
+    const program = programs[Math.floor(Math.random() * programs.length)]
+    const year = Math.floor(Math.random() * 4) + 1
+    const match_score = Math.floor(Math.random() * 101)
+
+    // Select 2-4 random tags
+    const selectedTags: string[] = []
+    const tagCount = Math.floor(Math.random() * 3) + 2
+    for (let j = 0; j < tagCount; j++) {
+      const tag = tags[Math.floor(Math.random() * tags.length)]
+      if (!selectedTags.includes(tag)) {
+        selectedTags.push(tag)
+      }
+    }
+
+    // Select 3-5 random interests
+    const selectedInterests: string[] = []
+    const interestCount = Math.floor(Math.random() * 3) + 3
+    for (let j = 0; j < interestCount; j++) {
+      const interest = interests[Math.floor(Math.random() * interests.length)]
+      if (!selectedInterests.includes(interest)) {
+        selectedInterests.push(interest)
+      }
+    }
 
     const roommate: Roommate = {
-      id: `roommate-${i + 1}`,
+      id,
       name,
-      photo: `/placeholder.svg?height=200&width=200&text=${firstName}`,
-      tags: getRandomElements(roommateTags, getRandomInt(3, 5)),
-      intro_bio: generateRandomBio(),
-      match_score: matchScore,
-      created_at: getRandomDate(sixMonthsAgo, now),
+      photo: `/placeholder.svg?height=400&width=400&query=${encodeURIComponent(`student ${i + 1}`)}`,
+      tags: selectedTags,
+      intro_bio: `Hi, I'm a ${year}${getOrdinal(year)} ${program} student at ${university}. Looking for a compatible roommate!`,
+      match_score,
+      created_at: new Date(Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)).toISOString(),
       university,
       program,
       year,
-      interests: getRandomElements(interests, getRandomInt(3, 6)),
+      interests: selectedInterests,
       lifestyle_preferences: {
-        cleanliness: getRandomInt(1, 5),
-        noise_level: getRandomInt(1, 5),
-        guests: getRandomInt(1, 5),
-        sleep_schedule: getRandomElement(["early_bird", "night_owl", "flexible"]),
+        cleanliness: Math.floor(Math.random() * 5) + 1,
+        noise_level: Math.floor(Math.random() * 5) + 1,
+        guests: Math.floor(Math.random() * 5) + 1,
+        sleep_schedule: ["early_bird", "night_owl", "flexible"][Math.floor(Math.random() * 3)] as
+          | "early_bird"
+          | "night_owl"
+          | "flexible",
       },
     }
 
@@ -531,8 +285,9 @@ export function generateRoommates(count = 50): Roommate[] {
   return roommates
 }
 
-// Calculate match ratio
-export function calculateMatchRatio(currentIndex: number, totalItems: number): string {
-  const percentage = Math.round((currentIndex / totalItems) * 100)
-  return `${currentIndex}/${totalItems} (${percentage}%)`
+// Helper function to get ordinal suffix
+function getOrdinal(n: number): string {
+  const s = ["th", "st", "nd", "rd"]
+  const v = n % 100
+  return s[(v - 20) % 10] || s[v] || s[0]
 }

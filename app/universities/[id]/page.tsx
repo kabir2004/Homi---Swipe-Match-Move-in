@@ -15,6 +15,9 @@ import { MapPin, ArrowRight, Home, User2, Info, Clock, Check } from "lucide-reac
 import type { Listing } from "@/types"
 import { getSupabaseClient } from "@/lib/supabase"
 import { UniversityLogo } from "@/components/university-logo"
+import { handleImageError } from "@/utils/image-utils"
+import { getCampusImage } from "@/utils/university-utils"
+import { generateListings } from "@/data/listings"
 
 export default function UniversityDetailPage() {
   const params = useParams()
@@ -22,28 +25,63 @@ export default function UniversityDetailPage() {
   const [university, setUniversity] = useState(ONTARIO_UNIVERSITIES.find((uni) => uni.id === universityId))
   const [listings, setListings] = useState<Listing[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  // Initialize with a default placeholder to avoid empty string
+  const [campusImageSrc, setCampusImageSrc] = useState<string>(
+    `/placeholder.svg?height=800&width=1200&query=${encodeURIComponent("university campus")}`,
+  )
 
   useEffect(() => {
+    // Set the campus image source
+    if (university) {
+      const imageUrl = getCampusImage(university.id)
+      // Only set if we have a non-empty string
+      if (imageUrl && imageUrl.trim() !== "") {
+        setCampusImageSrc(imageUrl)
+      } else {
+        // Set a fallback with the university name
+        setCampusImageSrc(
+          `/placeholder.svg?height=800&width=1200&query=${encodeURIComponent(university.name + " university campus")}`,
+        )
+      }
+    }
+
     const fetchListings = async () => {
       setIsLoading(true)
       try {
         const supabase = getSupabaseClient()
 
-        // Mock university-specific listings
-        const { data } = await supabase.from("listings").select("*").limit(6)
+        // Try to fetch university-specific listings
+        const { data, error } = await supabase
+          .from("listings")
+          .select("*")
+          .eq("university", university?.name || "")
+          .limit(6)
 
-        if (data) {
+        if (error || !data || data.length === 0) {
+          console.log("No specific listings found, fetching general listings")
+          // Fallback to general listings if no university-specific ones
+          const { data: generalData } = await supabase.from("listings").select("*").limit(6)
+
+          if (generalData && generalData.length > 0) {
+            setListings(generalData as Listing[])
+          } else {
+            // Use generated data as a last resort
+            setListings(generateListings(6))
+          }
+        } else {
           setListings(data as Listing[])
         }
       } catch (error) {
         console.error("Error fetching listings:", error)
+        // Use generated data as fallback
+        setListings(generateListings(6))
       } finally {
         setIsLoading(false)
       }
     }
 
     fetchListings()
-  }, [universityId])
+  }, [universityId, university])
 
   if (!university) {
     return (
@@ -60,13 +98,33 @@ export default function UniversityDetailPage() {
     )
   }
 
+  // Ensure we never pass an empty string to Image src
+  const imageSrc =
+    campusImageSrc ||
+    `/placeholder.svg?height=800&width=1200&query=${encodeURIComponent(university.name + " university campus")}`
+
   return (
     <div className="min-h-screen bg-white">
       <Header />
 
       {/* Hero Section */}
-      <section className="pt-24 pb-16 md:pt-32 md:pb-24 bg-gray-50">
-        <div className="container mx-auto px-4">
+      <section className="pt-24 pb-16 md:pt-32 md:pb-24 bg-gray-50 relative">
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <Image
+            src={
+              campusImageSrc && campusImageSrc.trim() !== ""
+                ? campusImageSrc
+                : `/placeholder.svg?height=800&width=1200&query=${encodeURIComponent(university.name + " university campus")}`
+            }
+            alt={`${university.name} Campus`}
+            fill
+            className="object-cover opacity-15"
+            priority
+            onError={(e) => handleImageError(e, `${university.name} university campus`)}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-50/95 to-gray-50/80" />
+        </div>
+        <div className="container mx-auto px-4 relative z-10">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-8">
             <div>
               <div className="flex items-center gap-4 mb-4">
@@ -108,6 +166,7 @@ export default function UniversityDetailPage() {
         </div>
       </section>
 
+      {/* Rest of the component remains the same */}
       {/* Campus Areas */}
       <section className="py-12 border-b">
         <div className="container mx-auto px-4">

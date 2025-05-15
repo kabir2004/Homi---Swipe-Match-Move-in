@@ -3,35 +3,31 @@
 import type React from "react"
 
 import { useState, useRef, useEffect } from "react"
-import { useChat } from "ai/react"
-import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
-import { MessageCircle, X, Send, Loader2 } from "lucide-react"
-import { HomiBuoyLogo } from "./homi-buoy-logo"
-import { HOMIBUOY_SYSTEM_PROMPT, SUGGESTED_QUESTIONS } from "@/lib/homi-buoy-prompts"
+import { MessageCircle, X, Send, AlertCircle } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
+
+type Message = {
+  role: "user" | "assistant"
+  content: string
+}
 
 export function HomiBuoy() {
   const [isOpen, setIsOpen] = useState(false)
-  const [isTyping, setIsTyping] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  const { messages, input, setInput, handleInputChange, handleSubmit, isLoading } = useChat({
-    initialMessages: [
-      {
-        id: "welcome",
-        role: "assistant",
-        content: "Hi there! I'm HomiBuoy, your student housing assistant. How can I help you today?",
-      },
-    ],
-    body: {
-      systemPrompt: HOMIBUOY_SYSTEM_PROMPT,
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      role: "assistant",
+      content: "Hi there! I'm HomiBuoy, your housing and roommate assistant. How can I help you today?",
     },
-  })
+  ])
+  const [input, setInput] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -41,17 +37,57 @@ export function HomiBuoy() {
   }, [messages])
 
   // Handle form submission
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!input.trim()) return
 
-    setIsTyping(true)
-    handleSubmit(e)
+    // Add user message
+    const userMessage = { role: "user" as const, content: input }
+    setMessages((prev) => [...prev, userMessage])
+    setInput("")
+    setIsLoading(true)
+    setError(null)
 
-    // Simulate typing indicator
-    setTimeout(() => {
-      setIsTyping(false)
-    }, 1000)
+    try {
+      // First try the non-streaming API for reliability
+      console.log("Sending message to chat API")
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: [...messages, userMessage],
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.error) {
+        throw new Error(data.error)
+      }
+
+      // Add assistant message
+      setMessages((prev) => [...prev, { role: "assistant", content: data.content }])
+    } catch (error) {
+      console.error("Error in chat:", error)
+      setError(error instanceof Error ? error.message : "Unknown error occurred")
+
+      // Add error message
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "I'm sorry, I'm having trouble connecting right now. Please try again later.",
+        },
+      ])
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // Handle suggested question click
@@ -70,15 +106,15 @@ export function HomiBuoy() {
       {/* Chat bubble button */}
       <motion.div
         className="fixed bottom-6 right-6 z-50"
-        initial={{ scale: 0 }}
-        animate={{ scale: 1 }}
-        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.3 }}
       >
         <Button
           onClick={() => setIsOpen(!isOpen)}
           className={cn(
             "w-14 h-14 rounded-full shadow-lg flex items-center justify-center",
-            isOpen ? "bg-gray-700 hover:bg-gray-800" : "bg-primary hover:bg-primary-600",
+            isOpen ? "bg-gray-800 hover:bg-gray-900" : "bg-primary hover:bg-primary-600",
           )}
         >
           {isOpen ? (
@@ -99,32 +135,37 @@ export function HomiBuoy() {
         {isOpen && (
           <motion.div
             className="fixed bottom-24 right-6 z-50 w-80 md:w-96"
-            initial={{ opacity: 0, y: 50, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 50, scale: 0.9 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.2 }}
           >
             <Card className="border shadow-xl overflow-hidden">
-              <CardHeader className="bg-primary/10 py-3 px-4 flex flex-row items-center gap-3">
-                <HomiBuoyLogo size="sm" />
-                <CardTitle className="text-lg">
-                  <span className="text-primary">H</span>omiBuoy
-                </CardTitle>
-                <Button variant="ghost" size="icon" className="ml-auto h-8 w-8" onClick={() => setIsOpen(false)}>
+              <CardHeader className="bg-primary py-3 px-4 flex flex-row items-center gap-3">
+                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                  <MessageCircle className="h-4 w-4 text-primary" />
+                </div>
+                <CardTitle className="text-lg text-white">HomiBuoy</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="ml-auto h-8 w-8 text-white hover:bg-primary-600"
+                  onClick={() => setIsOpen(false)}
+                >
                   <X className="h-4 w-4" />
                 </Button>
               </CardHeader>
               <CardContent className="p-0">
                 <ScrollArea className="h-[350px] p-4">
-                  {messages.map((message) => (
+                  {messages.map((message, index) => (
                     <div
-                      key={message.id}
-                      className={cn("mb-4 flex", message.role === "user" ? "justify-end" : "justify-start")}
+                      key={index}
+                      className={cn("mb-3", message.role === "user" ? "justify-end flex" : "justify-start flex")}
                     >
                       <div
                         className={cn(
-                          "max-w-[80%] rounded-lg px-3 py-2",
-                          message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted",
+                          "max-w-[85%] rounded-lg px-3 py-2",
+                          message.role === "user" ? "bg-primary text-white ml-auto" : "bg-gray-100 text-gray-800",
                         )}
                       >
                         <p className="text-sm">{message.content}</p>
@@ -132,34 +173,69 @@ export function HomiBuoy() {
                     </div>
                   ))}
 
-                  {/* Typing indicator */}
+                  {/* Loading indicator */}
                   {isLoading && (
-                    <div className="flex justify-start mb-4">
-                      <div className="bg-muted max-w-[80%] rounded-lg px-3 py-2">
+                    <div className="flex justify-start mb-3">
+                      <div className="bg-gray-100 max-w-[85%] rounded-lg px-3 py-2">
                         <div className="flex items-center gap-2">
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                          <p className="text-xs text-muted-foreground">HomiBuoy is typing...</p>
+                          <div className="flex space-x-1">
+                            <div
+                              className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                              style={{ animationDelay: "0ms" }}
+                            ></div>
+                            <div
+                              className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                              style={{ animationDelay: "150ms" }}
+                            ></div>
+                            <div
+                              className="w-2 h-2 rounded-full bg-gray-400 animate-bounce"
+                              style={{ animationDelay: "300ms" }}
+                            ></div>
+                          </div>
                         </div>
                       </div>
                     </div>
                   )}
 
-                  {/* Suggested questions (only show if there are few messages) */}
+                  {/* Error message */}
+                  {error && (
+                    <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-red-500" />
+                        <p className="text-xs text-red-600">Error: {error}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Suggested questions */}
                   {messages.length < 3 && !isLoading && (
-                    <div className="mt-6">
-                      <p className="text-xs text-muted-foreground mb-2">Suggested questions:</p>
+                    <div className="mt-4">
+                      <p className="text-xs text-gray-500 mb-2">Try asking:</p>
                       <div className="flex flex-wrap gap-2">
-                        {SUGGESTED_QUESTIONS.slice(0, 4).map((question) => (
-                          <Button
-                            key={question}
-                            variant="outline"
-                            size="sm"
-                            className="text-xs py-1 h-auto"
-                            onClick={() => handleSuggestedQuestion(question)}
-                          >
-                            {question}
-                          </Button>
-                        ))}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs py-1 h-auto"
+                          onClick={() => handleSuggestedQuestion("How does roommate matching work?")}
+                        >
+                          How does matching work?
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs py-1 h-auto"
+                          onClick={() => handleSuggestedQuestion("What's the average rent near UofT?")}
+                        >
+                          Rent near UofT?
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs py-1 h-auto"
+                          onClick={() => handleSuggestedQuestion("When should I start looking for housing?")}
+                        >
+                          When to start looking?
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -167,17 +243,21 @@ export function HomiBuoy() {
                   <div ref={messagesEndRef} />
                 </ScrollArea>
               </CardContent>
-              <Separator />
-              <CardFooter className="p-3">
-                <form onSubmit={onSubmit} className="flex w-full gap-2">
+              <CardFooter className="p-2">
+                <form onSubmit={handleSubmit} className="flex w-full gap-2">
                   <Input
-                    placeholder="Type your message..."
+                    placeholder="Ask me anything..."
                     value={input}
-                    onChange={handleInputChange}
+                    onChange={(e) => setInput(e.target.value)}
                     className="flex-1"
                     disabled={isLoading}
                   />
-                  <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+                  <Button
+                    type="submit"
+                    size="icon"
+                    disabled={isLoading || !input.trim()}
+                    className="bg-primary hover:bg-primary-600"
+                  >
                     <Send className="h-4 w-4" />
                   </Button>
                 </form>

@@ -7,11 +7,12 @@ export interface QuizQuestion {
   max?: number
 }
 
+// Update the Listing interface to include the new fields
 export interface Listing {
   id: string
   title: string
   location: string
-  price: number
+  price: number | { min: number; max: number }
   photos: string[]
   features: {
     bedrooms: number
@@ -28,6 +29,15 @@ export interface Listing {
   neighborhood?: string
   transit_options?: string[]
   virtual_tour_url?: string
+  // New fields
+  university: string
+  city: string
+  latitude: number
+  longitude: number
+  walk_distance: number
+  drive_distance: number
+  maps_url: string
+  is_room_only?: boolean
 }
 
 export interface Roommate {
@@ -50,6 +60,7 @@ export interface Roommate {
   }
 }
 
+// Update the University interface to include campusImage
 export interface University {
   id: string
   name: string
@@ -59,8 +70,10 @@ export interface University {
   province: string
   campusAreas: string[]
   logo: string
+  campusImage: string // Make this required
 }
 
+// Update the ONTARIO_UNIVERSITIES array with correct campus images
 export const ONTARIO_UNIVERSITIES: University[] = [
   {
     id: "uoft",
@@ -71,6 +84,7 @@ export const ONTARIO_UNIVERSITIES: University[] = [
     province: "Ontario",
     campusAreas: ["St. George", "Scarborough", "Mississauga"],
     logo: "/universities/uoft.svg",
+    campusImage: "/campus/uoft-campus.jpg",
   },
   {
     id: "waterloo",
@@ -81,6 +95,7 @@ export const ONTARIO_UNIVERSITIES: University[] = [
     province: "Ontario",
     campusAreas: ["Main Campus", "Health Sciences Campus"],
     logo: "/universities/waterloo.svg",
+    campusImage: "/campus/waterloo-campus.jpg",
   },
   {
     id: "western",
@@ -91,6 +106,7 @@ export const ONTARIO_UNIVERSITIES: University[] = [
     province: "Ontario",
     campusAreas: ["Main Campus", "Downtown"],
     logo: "/universities/western.svg",
+    campusImage: "/campus/western-campus.jpg",
   },
   {
     id: "queens",
@@ -101,6 +117,7 @@ export const ONTARIO_UNIVERSITIES: University[] = [
     province: "Ontario",
     campusAreas: ["Main Campus", "West Campus"],
     logo: "/universities/queens.svg",
+    campusImage: "/campus/queens-campus.jpg",
   },
   {
     id: "mcmaster",
@@ -111,6 +128,7 @@ export const ONTARIO_UNIVERSITIES: University[] = [
     province: "Ontario",
     campusAreas: ["Main Campus", "Health Sciences"],
     logo: "/universities/mcmaster.svg",
+    campusImage: "/campus/mcmaster-campus.jpg",
   },
   {
     id: "ryerson",
@@ -121,6 +139,7 @@ export const ONTARIO_UNIVERSITIES: University[] = [
     province: "Ontario",
     campusAreas: ["Downtown Campus"],
     logo: "/universities/tmu.svg",
+    campusImage: "/campus/tmu-campus.jpg",
   },
   {
     id: "york",
@@ -131,6 +150,7 @@ export const ONTARIO_UNIVERSITIES: University[] = [
     province: "Ontario",
     campusAreas: ["Keele Campus", "Glendon Campus"],
     logo: "/universities/york.svg",
+    campusImage: "/campus/york-campus.jpg",
   },
   {
     id: "laurier",
@@ -141,5 +161,35 @@ export const ONTARIO_UNIVERSITIES: University[] = [
     province: "Ontario",
     campusAreas: ["Waterloo Campus", "Brantford Campus"],
     logo: "/universities/laurier.svg",
+    campusImage: "/campus/laurier-campus.jpg",
   },
 ]
+
+export interface RoommateProfile {
+  id: string
+  name: string
+  age: number
+  gender: string
+  university: string
+  program: string
+  year: number | string
+  bio: string
+  hobbies: string[]
+  profileImage: string
+  cleanliness: number
+  noise: number
+  socialLevel: number
+  sleepSchedule: string
+  studyHabits: string
+  guests: string
+  smoking: boolean
+  drinking: string
+  pets: string
+  cooking: string
+  sharedItems: string
+  personality: string
+  budget: string
+  moveInDate: string
+  leaseLength: string
+  location: string
+}

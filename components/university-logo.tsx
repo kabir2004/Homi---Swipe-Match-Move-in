@@ -86,11 +86,25 @@ export function UniversityLogo({
               style={{ width: sizes[size] + 16, height: sizes[size] + 16 }}
             >
               <Image
-                src={university.logo3d || `/universities/${university.id}.svg` || "/placeholder.svg"}
+                src={
+                  university.logo3d && university.logo3d.trim() !== ""
+                    ? university.logo3d
+                    : `/universities/${university.id}.svg` && `/universities/${university.id}.svg`.trim() !== ""
+                      ? `/universities/${university.id}.svg`
+                      : "/abstract-university-crest.png" && "/abstract-university-crest.png".trim() !== ""
+                        ? "/abstract-university-crest.png"
+                        : `/placeholder.svg?height=${sizes[size]}&width=${sizes[size]}&query=${encodeURIComponent(university.name + " logo")}`
+                }
                 alt={`${university.name} Logo`}
                 width={sizes[size]}
                 height={sizes[size]}
                 className="object-contain"
+                onError={(e) => {
+                  // If the image fails to load, use placeholder
+                  const target = e.target as HTMLImageElement
+                  target.onerror = null // Prevent infinite loop
+                  target.src = `/placeholder.svg?height=${sizes[size]}&width=${sizes[size]}&query=${encodeURIComponent(university.name + " logo")}`
+                }}
               />
 
               {/* Hidden university name tooltip */}
@@ -114,11 +128,25 @@ export function UniversityLogo({
             style={{ width: sizes[size] + 16, height: sizes[size] + 16 }}
           >
             <Image
-              src={university.logo3d || `/universities/${university.id}.svg` || "/placeholder.svg"}
+              src={
+                university.logo3d && university.logo3d.trim() !== ""
+                  ? university.logo3d
+                  : `/universities/${university.id}.svg` && `/universities/${university.id}.svg`.trim() !== ""
+                    ? `/universities/${university.id}.svg`
+                    : "/abstract-university-crest.png" && "/abstract-university-crest.png".trim() !== ""
+                      ? "/abstract-university-crest.png"
+                      : `/placeholder.svg?height=${sizes[size]}&width=${sizes[size]}&query=${encodeURIComponent(university.name + " logo")}`
+              }
               alt={`${university.name} Logo`}
               width={sizes[size]}
               height={sizes[size]}
               className="object-contain"
+              onError={(e) => {
+                // If the image fails to load, use placeholder
+                const target = e.target as HTMLImageElement
+                target.onerror = null // Prevent infinite loop
+                target.src = `/placeholder.svg?height=${sizes[size]}&width=${sizes[size]}&query=${encodeURIComponent(university.name + " logo")}`
+              }}
             />
           </div>
         )}

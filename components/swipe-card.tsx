@@ -8,15 +8,17 @@ import { cn } from "@/lib/utils"
 import { Check, X, Info, Home, User2, Heart, MapPin, DollarSign, School } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { calculateMatchScore } from "@/lib/preference-learning"
 
 interface SwipeCardProps {
   item: Listing | Roommate
   type: "listing" | "roommate"
   onSwipe: (direction: "like" | "dislike", id: string) => void
   onInfo: (id: string) => void
+  preferenceProfile?: any
 }
 
-export function SwipeCard({ item, type, onSwipe, onInfo }: SwipeCardProps) {
+export function SwipeCard({ item, type, onSwipe, onInfo, preferenceProfile }: SwipeCardProps) {
   const [exitX, setExitX] = useState<number>(0)
   const [isDragging, setIsDragging] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
@@ -49,6 +51,19 @@ export function SwipeCard({ item, type, onSwipe, onInfo }: SwipeCardProps) {
   const isListing = type === "listing"
   const photo = isListing ? (item as Listing).photos[0] : (item as Roommate).photo
 
+  const aiMatchScore = preferenceProfile && type === "roommate" ? calculateMatchScore(preferenceProfile, item) : null
+
+  // Format price display for listings
+  const formatPrice = () => {
+    if (!isListing) return null
+
+    const listing = item as Listing
+    if (listing.price_min && listing.price_max && listing.price_min !== listing.price_max) {
+      return `$${listing.price_min}-${listing.price_max}`
+    }
+    return `$${listing.price || listing.price_min}`
+  }
+
   return (
     <motion.div
       ref={cardRef}
@@ -61,6 +76,9 @@ export function SwipeCard({ item, type, onSwipe, onInfo }: SwipeCardProps) {
       onDragEnd={handleDragEnd}
       animate={{ x: exitX }}
       transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
+      initial={{ scale: 0.95, opacity: 0.5 }}
+      whileInView={{ scale: 1, opacity: 1 }}
+      viewport={{ once: false }}
     >
       {/* Like overlay */}
       <motion.div
@@ -74,6 +92,8 @@ export function SwipeCard({ item, type, onSwipe, onInfo }: SwipeCardProps) {
       <motion.div
         className="absolute inset-0 bg-red-500/20 rounded-2xl z-10 flex items-center justify-center"
         style={{ opacity: dislikeOpacity }}
+        initial={{ scale: 0.8 }}
+        animate={{ scale: 1 }}
       >
         <X className="h-24 w-24 text-red-500" strokeWidth={1.5} />
       </motion.div>
@@ -81,10 +101,17 @@ export function SwipeCard({ item, type, onSwipe, onInfo }: SwipeCardProps) {
       <div className="relative w-full h-full bg-white rounded-2xl overflow-hidden shadow-lg border border-gray-100">
         <div className="relative w-full h-3/5">
           <Image
-            src={photo || "/placeholder.svg?height=400&width=600"}
+            src={photo || "/placeholder.svg?height=400&width=600&query=student%20housing"}
             alt={isListing ? (item as Listing).title : (item as Roommate).name}
             fill
             className="object-cover"
+            onError={(e) => {
+              // Fallback to placeholder if image fails to load
+              const target = e.target as HTMLImageElement
+              target.src = `/placeholder.svg?height=400&width=600&query=${encodeURIComponent(
+                isListing ? (item as Listing).title : (item as Roommate).name,
+              )}`
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-transparent to-black/70" />
 
@@ -94,9 +121,20 @@ export function SwipeCard({ item, type, onSwipe, onInfo }: SwipeCardProps) {
               {isListing ? "Listing" : "Roommate"}
             </Badge>
 
-            {isListing && (
+            {isListing ? (
               <Badge variant="secondary" className="flex items-center gap-1 shadow-sm bg-white/90 backdrop-blur-sm">
-                <DollarSign className="h-3 w-3" />${(item as Listing).price}
+                <DollarSign className="h-3 w-3" />
+                {formatPrice()}/month
+              </Badge>
+            ) : (
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "flex items-center gap-1 shadow-sm backdrop-blur-sm",
+                  aiMatchScore ? "bg-green-100/90 text-green-800" : "bg-white/90",
+                )}
+              >
+                {aiMatchScore ? <>AI Match: {aiMatchScore}%</> : <>Match: {(item as Roommate).match_score}%</>}
               </Badge>
             )}
           </div>
@@ -138,18 +176,13 @@ export function SwipeCard({ item, type, onSwipe, onInfo }: SwipeCardProps) {
                 {(item as Listing).features.square_feet} sq ft
               </p>
 
-              {(item as Listing).university_distance &&
-                Object.keys((item as Listing).university_distance).length > 0 && (
-                  <div className="mt-2 text-xs text-gray-500">
-                    <span className="font-medium">Distance to campus: </span>
-                    {Object.entries((item as Listing).university_distance).map(([uni, distance], i) => (
-                      <span key={uni}>
-                        {i > 0 && ", "}
-                        {distance} km to {uni}
-                      </span>
-                    ))}
-                  </div>
-                )}
+              {/* Display university and distance information */}
+              {(item as Listing).university && (
+                <div className="mt-2 text-xs text-gray-500">
+                  <span className="font-medium">Distance to {(item as Listing).university}: </span>
+                  <span>{(item as Listing).walk_distance} km walking</span>
+                </div>
+              )}
             </>
           ) : (
             <>

@@ -1,22 +1,38 @@
 import { createClient } from "@supabase/supabase-js"
 
-// Create a single supabase client for interacting with your database
-const createSupabaseClient = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+// Add a singleton pattern for the Supabase client to prevent multiple instances
 
-  return createClient(supabaseUrl, supabaseAnonKey)
+// Ensure we have the required environment variables
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error("Missing Supabase environment variables. Check your .env file.")
 }
 
-// Server-side client
-export const supabaseServer = createSupabaseClient()
+// Create a single instance of the Supabase client
+let supabaseInstance: ReturnType<typeof createClient> | null = null
 
-// Client-side singleton pattern
-let supabaseInstance: ReturnType<typeof createSupabaseClient> | null = null
-
-export const getSupabaseClient = () => {
+export function getSupabaseClient() {
   if (!supabaseInstance) {
-    supabaseInstance = createSupabaseClient()
+    supabaseInstance = createClient(supabaseUrl || "", supabaseAnonKey || "")
   }
   return supabaseInstance
+}
+
+// Create a server-side client with service role for admin operations
+export async function getSupabaseAdmin() {
+  const { createClient } = await import("@supabase/supabase-js")
+
+  return createClient(process.env.SUPABASE_URL || "", process.env.SUPABASE_SERVICE_ROLE_KEY || "", {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  })
+}
+
+// Helper function to check if Supabase is properly configured
+export function isSupabaseConfigured(): boolean {
+  return Boolean(supabaseUrl && supabaseAnonKey)
 }

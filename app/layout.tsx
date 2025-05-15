@@ -3,7 +3,9 @@ import type { Metadata } from "next"
 import { GeistSans } from "geist/font/sans"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
-import { HomBuoy } from "@/components/hom-buoy"
+import { HomiBuoyImproved } from "@/components/homi-buoy-improved"
+import { AuthProvider } from "@/contexts/auth-context-enhanced"
+import { ToastContainer } from "@/components/ui/feedback-toast"
 
 export const metadata: Metadata = {
   title: "Homi - Smart Housing for Students",
@@ -19,14 +21,14 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${GeistSans.className} antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {children}
-          <HomBuoy />
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+            {children}
+            <ToastContainer />
+            <HomiBuoyImproved />
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   )
 }
-
-
-import './globals.css'
