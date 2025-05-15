@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Loader2, Send, CheckCircle, XCircle } from "lucide-react"
-// No direct import needed as we'll use fetch API
 import { HomiBuoyClient } from "@/components/homi-buoy-client"
 
 export default function TestClientPage() {
@@ -13,7 +12,7 @@ export default function TestClientPage() {
   const [response, setResponse] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [connectionStatus, setConnectionStatus] = useState<"untested" | "success" | "failed">("untested")
-  const [apiKeyStatus, setApiKeyStatus] = useState<"available" | "missing">("untested")
+  const [apiKeyStatus, setApiKeyStatus] = useState<"untested" | "available" | "missing">("untested")
 
   // Check API key status on component mount
   useEffect(() => {
@@ -31,12 +30,20 @@ export default function TestClientPage() {
     checkApiStatus()
   }, [])
 
+  // Test direct API connection
   const testDirectApi = async () => {
     setIsLoading(true)
     setConnectionStatus("untested")
 
     try {
-      const response = await fetch("/api/test-gemini")
+      const response = await fetch("/api/gemini-direct", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: testMessage }),
+      })
+
       const result = await response.json()
 
       if (result.success) {
@@ -58,7 +65,9 @@ export default function TestClientPage() {
   return (
     <div className="min-h-screen p-8">
       <h1 className="text-2xl font-bold mb-4">HomiBuoy Client Test Page</h1>
-      <p className="mb-8">This page tests the client-side implementation of HomiBuoy using the Gemini API directly.</p>
+      <p className="mb-8">
+        This page tests the client-side implementation of HomiBuoy using the Gemini API via server endpoints.
+      </p>
 
       <div className="grid md:grid-cols-2 gap-8">
         <Card>
@@ -67,20 +76,24 @@ export default function TestClientPage() {
               API Key Status
               {apiKeyStatus === "available" ? (
                 <CheckCircle className="h-5 w-5 text-green-500" />
-              ) : (
+              ) : apiKeyStatus === "missing" ? (
                 <XCircle className="h-5 w-5 text-red-500" />
+              ) : (
+                <Loader2 className="h-5 w-5 animate-spin" />
               )}
             </CardTitle>
           </CardHeader>
           <CardContent>
             <p className="mb-4">
               {apiKeyStatus === "available"
-                ? "NEXT_PUBLIC_GEMINI_API_KEY is available in environment variables."
-                : "NEXT_PUBLIC_GEMINI_API_KEY is missing from environment variables."}
+                ? "Gemini API key is configured on the server."
+                : apiKeyStatus === "missing"
+                  ? "Gemini API key is not configured on the server."
+                  : "Checking API key status..."}
             </p>
             <div className="p-4 bg-gray-50 rounded-md">
               <p className="text-sm font-mono">
-                {apiKeyStatus === "available" ? "API Key is configured on the server" : "API Key is not available"}
+                {apiKeyStatus === "available" ? "Server has a valid API key configured" : "API key status unknown"}
               </p>
             </div>
           </CardContent>

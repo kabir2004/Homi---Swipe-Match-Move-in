@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ExternalLink, Copy, Check, AlertCircle } from "lucide-react"
-// No direct import needed as we'll use fetch API
 
 export default function ApiSetupPage() {
   const [apiKey, setApiKey] = useState("")
@@ -45,7 +44,7 @@ export default function ApiSetupPage() {
   }
 
   const copyEnvVariable = () => {
-    navigator.clipboard.writeText(`NEXT_PUBLIC_GEMINI_API_KEY=${apiKey}`)
+    navigator.clipboard.writeText(`GEMINI_API_KEY=${apiKey}`)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -181,24 +180,19 @@ export default function ApiSetupPage() {
               <CardContent className="space-y-4">
                 <h3 className="font-semibold">Option 1: Environment Variables (Recommended)</h3>
                 <p className="text-sm text-gray-600">
-                  Add these lines to your <code className="bg-gray-100 px-1 py-0.5 rounded">.env.local</code> file:
+                  Add this line to your <code className="bg-gray-100 px-1 py-0.5 rounded">.env.local</code> file:
                 </p>
                 <div className="bg-gray-900 text-gray-100 p-3 rounded-md font-mono text-sm">
                   <pre>GEMINI_API_KEY=your_api_key_here</pre>
-                  <pre>NEXT_PUBLIC_GEMINI_API_KEY=your_api_key_here</pre>
                 </div>
 
                 <h3 className="font-semibold pt-4">Option 2: Vercel Environment Variables</h3>
                 <p className="text-sm text-gray-600">
-                  If deploying to Vercel, add these environment variables in your project settings:
+                  If deploying to Vercel, add this environment variable in your project settings:
                 </p>
                 <ul className="list-disc pl-5 space-y-2 text-sm text-gray-600">
                   <li>
                     <code className="bg-gray-100 px-1 py-0.5 rounded">GEMINI_API_KEY</code> (for server-side usage)
-                  </li>
-                  <li>
-                    <code className="bg-gray-100 px-1 py-0.5 rounded">NEXT_PUBLIC_GEMINI_API_KEY</code> (for client-side
-                    usage)
                   </li>
                 </ul>
 
