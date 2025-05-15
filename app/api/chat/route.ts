@@ -1,5 +1,5 @@
 import { HOMIBUOY_SYSTEM_PROMPT } from "@/lib/homi-buoy-prompts"
-import { generateChatResponse } from "@/lib/gemini-server"
+import { OpenAIStream, StreamingTextResponse } from "ai"
 
 export const runtime = "nodejs"
 
@@ -12,16 +12,15 @@ export async function POST(req: Request) {
       messages[0]?.role === "system" ? messages : [{ role: "system", content: HOMIBUOY_SYSTEM_PROMPT }, ...messages]
 
     // Create a stream from the completion
-    const stream = await generateChatResponse(messagesWithSystemPrompt)
+    const stream = OpenAIStream({
+      model: "gpt-4o",
+      messages: messagesWithSystemPrompt,
+      temperature: 0.7,
+      max_tokens: 1000,
+    })
 
     // Return the stream as a streaming response
-    return new Response(stream, {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache, no-transform",
-        Connection: "keep-alive",
-      },
-    })
+    return new StreamingTextResponse(stream)
   } catch (error) {
     console.error("Error in chat API:", error)
     return new Response(

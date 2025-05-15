@@ -1,156 +1,135 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
-import { Loader2, Send, CheckCircle, XCircle } from "lucide-react"
+import { Label } from "@/components/ui/label"
 
 export default function TestApiPage() {
-  const [testMessage, setTestMessage] = useState("Hello, are you working?")
+  const [apiStatus, setApiStatus] = useState<"loading" | "success" | "error">("loading")
+  const [apiMessage, setApiMessage] = useState("")
+  const [prompt, setPrompt] = useState("Tell me about student housing in Ontario")
   const [response, setResponse] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [connectionStatus, setConnectionStatus] = useState<"untested" | "success" | "failed">("untested")
-  const [apiKey, setApiKey] = useState("")
+  const [isGenerating, setIsGenerating] = useState(false)
 
-  // Test direct API connection
-  const testDirectApi = async () => {
-    setIsLoading(true)
-    setConnectionStatus("untested")
+  useEffect(() => {
+    checkApiStatus()
+  }, [])
 
+  async function checkApiStatus() {
     try {
-      const response = await fetch("/api/gemini-direct", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          message: testMessage,
-        }),
-      })
+      setApiStatus("loading")
+      const res = await fetch("/api/test-gemini")
+      const data = await res.json()
 
-      const data = await response.json()
-      console.log("Direct API response:", data)
-
-      if (data.error) {
-        setConnectionStatus("failed")
-        setResponse(`Error: ${data.error}`)
-      } else if (data.content) {
-        setConnectionStatus("success")
-        setResponse(data.content)
+      if (data.success) {
+        setApiStatus("success")
+        setApiMessage(data.message || "API is working correctly")
       } else {
-        setConnectionStatus("failed")
-        setResponse("Received response but couldn't find content")
+        setApiStatus("error")
+        setApiMessage(data.message || "API key is invalid or not configured")
       }
     } catch (error) {
-      console.error("Error testing direct API:", error)
-      setConnectionStatus("failed")
-      setResponse(`Error: ${error.message}`)
-    } finally {
-      setIsLoading(false)
+      setApiStatus("error")
+      setApiMessage("Error checking API status")
+      console.error("Error checking API status:", error)
     }
   }
 
-  // Test our API endpoint
-  const testApiEndpoint = async () => {
-    setIsLoading(true)
-    setConnectionStatus("untested")
+  async function generateResponse() {
+    if (!prompt.trim()) return
 
     try {
-      const response = await fetch("/api/chat", {
+      setIsGenerating(true)
+      setResponse("")
+
+      const res = await fetch("/api/gemini-chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          messages: [{ role: "user", content: testMessage }],
+          messages: [{ role: "user", content: prompt }],
         }),
       })
 
-      const data = await response.json()
-      console.log("API endpoint response:", data)
+      const data = await res.json()
 
-      if (data.error) {
-        setConnectionStatus("failed")
-        setResponse(`Error: ${data.error}`)
-      } else if (data.content) {
-        setConnectionStatus("success")
-        setResponse(data.content)
+      if (res.ok) {
+        setResponse(data.text || "No response received")
       } else {
-        setConnectionStatus("failed")
-        setResponse("Received response but couldn't find content")
+        setResponse(`Error: ${data.message || "Failed to generate response"}`)
       }
     } catch (error) {
-      console.error("Error testing API endpoint:", error)
-      setConnectionStatus("failed")
-      setResponse(`Error: ${error.message}`)
+      setResponse("Error generating response. Please try again.")
+      console.error("Error generating response:", error)
     } finally {
-      setIsLoading(false)
+      setIsGenerating(false)
     }
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <h1 className="text-2xl font-bold mb-4">API Connection Test</h1>
-      <p className="mb-8">This page tests the connection to the Gemini API to help diagnose any issues.</p>
+    <div className="container mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-6">API Test Page</h1>
 
-      <div className="grid md:grid-cols-2 gap-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Test Direct API Connection</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Test Message</label>
-              <Input
-                value={testMessage}
-                onChange={(e) => setTestMessage(e.target.value)}
-                placeholder="Enter a test message"
-              />
-            </div>
-
-            <Button onClick={testDirectApi} disabled={isLoading} className="w-full">
-              {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-              Test Direct API Connection
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Test API Endpoint</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">Test Message</label>
-              <Input
-                value={testMessage}
-                onChange={(e) => setTestMessage(e.target.value)}
-                placeholder="Enter a test message"
-              />
-            </div>
-
-            <Button onClick={testApiEndpoint} disabled={isLoading} className="w-full">
-              {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-              Test API Endpoint
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card className="mt-8">
+      <Card className="mb-8">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            Response
-            {connectionStatus === "success" && <CheckCircle className="h-5 w-5 text-green-500" />}
-            {connectionStatus === "failed" && <XCircle className="h-5 w-5 text-red-500" />}
-          </CardTitle>
+          <CardTitle>API Status</CardTitle>
+          <CardDescription>Check if the Gemini API is configured correctly</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="bg-gray-50 p-4 rounded-md min-h-[200px] whitespace-pre-wrap">
-            {response || "No response yet. Run a test to see results."}
+          <div className="flex items-center gap-4">
+            <div
+              className={`w-4 h-4 rounded-full ${
+                apiStatus === "loading" ? "bg-yellow-500" : apiStatus === "success" ? "bg-green-500" : "bg-red-500"
+              }`}
+            ></div>
+            <p>
+              {apiStatus === "loading"
+                ? "Checking API status..."
+                : apiStatus === "success"
+                  ? "API is working correctly"
+                  : "API error"}
+            </p>
           </div>
+          {apiMessage && <p className="mt-2 text-sm">{apiMessage}</p>}
         </CardContent>
+        <CardFooter>
+          <Button onClick={checkApiStatus} disabled={apiStatus === "loading"}>
+            {apiStatus === "loading" ? "Checking..." : "Check API Status"}
+          </Button>
+        </CardFooter>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Test Gemini API</CardTitle>
+          <CardDescription>Generate a response using the Gemini API</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="prompt">Prompt</Label>
+            <Input
+              id="prompt"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Enter your prompt here"
+            />
+          </div>
+
+          {response && (
+            <div className="space-y-2">
+              <Label>Response</Label>
+              <div className="p-4 bg-gray-100 rounded-md whitespace-pre-wrap">{response}</div>
+            </div>
+          )}
+        </CardContent>
+        <CardFooter>
+          <Button onClick={generateResponse} disabled={isGenerating || apiStatus !== "success" || !prompt.trim()}>
+            {isGenerating ? "Generating..." : "Generate Response"}
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   )
