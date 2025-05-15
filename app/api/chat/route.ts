@@ -1,4 +1,3 @@
-import { StreamingTextResponse } from "ai"
 import { HOMIBUOY_SYSTEM_PROMPT } from "@/lib/homi-buoy-prompts"
 import { generateChatResponse } from "@/lib/gemini-server"
 
@@ -16,7 +15,13 @@ export async function POST(req: Request) {
     const stream = await generateChatResponse(messagesWithSystemPrompt)
 
     // Return the stream as a streaming response
-    return new StreamingTextResponse(stream)
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    })
   } catch (error) {
     console.error("Error in chat API:", error)
     return new Response(
