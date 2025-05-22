@@ -4,14 +4,12 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import type { QuizQuestion } from "@/types"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
 import { QuizSingleChoice } from "./quiz-single-choice"
 import { QuizMultipleChoice } from "./quiz-multiple-choice"
 import { QuizRange } from "./quiz-range"
 import { QuizText } from "./quiz-text"
 import { motion, AnimatePresence } from "framer-motion"
-import { ArrowLeft, ArrowRight, Loader2, CheckCircle2 } from "lucide-react"
-import confetti from "canvas-confetti"
+import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react"
 
 interface QuizFormProps {
   questions: QuizQuestion[]
@@ -23,7 +21,7 @@ export function QuizForm({ questions, onComplete }: QuizFormProps) {
   const [currentStep, setCurrentStep] = useState(0)
   const [answers, setAnswers] = useState<Record<string, any>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [showSuccess, setShowSuccess] = useState(false)
+  const [isCompleted, setIsCompleted] = useState(false)
 
   const currentQuestion = questions[currentStep]
   const progress = ((currentStep + 1) / questions.length) * 100
@@ -52,25 +50,27 @@ export function QuizForm({ questions, onComplete }: QuizFormProps) {
       const success = await onComplete(answers)
 
       if (success) {
-        setShowSuccess(true)
-        // Trigger confetti effect
-        confetti({
-          particleCount: 150,
-          spread: 90,
-          origin: { y: 0.6 },
-          colors: ["#4F46E5", "#10B981", "#F59E0B"],
-        })
+        setIsCompleted(true)
 
-        // Redirect after a short delay
+        // Redirect after showing completion screen
         setTimeout(() => {
-          router.push("/dashboard")
-        }, 2500)
+          router.push("/swipe")
+        }, 3000)
       }
     } catch (error) {
       console.error("Error submitting quiz:", error)
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  // Check if the current question has a valid answer
+  const hasValidAnswer = () => {
+    const answer = answers[currentQuestion.key]
+    if (answer === undefined || answer === null) return false
+    if (currentQuestion.type === "multiple" && Array.isArray(answer)) return answer.length > 0
+    if (currentQuestion.type === "text") return answer.trim() !== ""
+    return true
   }
 
   const renderQuestionComponent = () => {
@@ -112,56 +112,44 @@ export function QuizForm({ questions, onComplete }: QuizFormProps) {
     }
   }
 
-  if (showSuccess) {
+  if (isCompleted) {
     return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="text-center py-16 px-4"
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center py-12">
         <motion.div
           initial={{ scale: 0 }}
           animate={{ scale: [0, 1.2, 1] }}
-          transition={{ duration: 0.5, times: [0, 0.8, 1] }}
-          className="inline-flex items-center justify-center w-24 h-24 bg-green-100 rounded-full mb-8"
+          transition={{ duration: 0.5 }}
+          className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6"
         >
-          <CheckCircle2 className="h-12 w-12 text-green-500" />
+          <Check className="h-10 w-10 text-green-600" />
         </motion.div>
-        <h2 className="text-3xl font-bold mb-4">Perfect Match Coming Up!</h2>
-        <p className="text-gray-600 mb-6 max-w-md mx-auto">
-          We're finding your ideal housing and roommate matches near your Ontario university based on your preferences.
+        <h3 className="text-2xl font-bold mb-4">Quiz Completed!</h3>
+        <p className="text-gray-600 mb-8">
+          Thank you for completing the quiz. We're now finding the best matches for you.
         </p>
-        <motion.div
-          animate={{
-            opacity: [0.5, 1, 0.5],
-            scale: [0.98, 1, 0.98],
-          }}
-          transition={{
-            repeat: Number.POSITIVE_INFINITY,
-            duration: 2,
-          }}
-          className="text-primary font-medium"
-        >
-          Redirecting to your dashboard...
-        </motion.div>
+        <div className="flex justify-center">
+          <Loader2 className="h-8 w-8 text-primary animate-spin" />
+        </div>
       </motion.div>
     )
   }
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <div className="mb-10">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-500">
+      {/* Progress bar */}
+      <div className="mb-8">
+        <div className="flex justify-between text-sm text-gray-500 mb-2">
+          <span>
             Question {currentStep + 1} of {questions.length}
           </span>
-          <span className="text-sm font-medium text-primary">{Math.round(progress)}% Complete</span>
+          <span>{Math.round(progress)}% Complete</span>
         </div>
-        <Progress
-          value={progress}
-          className="h-2 bg-gray-100 rounded-full overflow-hidden"
-          indicatorClassName="bg-primary transition-all duration-500 ease-in-out"
-        />
+        <div className="w-full bg-gray-100 h-2 rounded-full">
+          <div
+            className="bg-primary h-full rounded-full transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
@@ -171,27 +159,22 @@ export function QuizForm({ questions, onComplete }: QuizFormProps) {
           animate={{ opacity: 1, x: 0 }}
           exit={{ opacity: 0, x: -20 }}
           transition={{ duration: 0.3 }}
-          className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100"
+          className="bg-white p-8 rounded-xl shadow-sm"
         >
           {renderQuestionComponent()}
         </motion.div>
       </AnimatePresence>
 
-      <div className="mt-10 flex justify-between">
-        <Button
-          variant="outline"
-          onClick={handleBack}
-          disabled={currentStep === 0}
-          className="flex items-center gap-2 border-gray-200 hover:bg-gray-50 rounded-xl px-6"
-        >
+      <div className="mt-8 flex justify-between">
+        <Button variant="outline" onClick={handleBack} disabled={currentStep === 0} className="flex items-center gap-2">
           <ArrowLeft className="h-4 w-4" />
           Back
         </Button>
 
         <Button
           onClick={handleNext}
-          disabled={!answers[currentQuestion.key] || isSubmitting}
-          className="bg-primary hover:bg-primary-600 text-white flex items-center gap-2 rounded-xl px-6 shadow-sm hover:shadow"
+          disabled={isSubmitting}
+          className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2"
         >
           {isSubmitting ? (
             <>
@@ -206,7 +189,7 @@ export function QuizForm({ questions, onComplete }: QuizFormProps) {
           ) : (
             <>
               Complete
-              <ArrowRight className="h-4 w-4" />
+              <Check className="h-4 w-4" />
             </>
           )}
         </Button>

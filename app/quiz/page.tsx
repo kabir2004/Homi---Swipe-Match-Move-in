@@ -109,10 +109,17 @@ export default function QuizPage() {
       // Wait a moment to simulate processing
       await new Promise((resolve) => setTimeout(resolve, 1500))
 
+      // Store preferences in localStorage for use in the swipe interface
+      localStorage.setItem("userPreferences", JSON.stringify(results))
+
       return true
     } catch (error) {
       console.error("Error saving quiz results:", error)
-      return false
+
+      // Even if Supabase fails, still store in localStorage and return true
+      // to allow the user to continue to the swipe interface
+      localStorage.setItem("userPreferences", JSON.stringify(results))
+      return true
     } finally {
       setIsSubmitting(false)
     }

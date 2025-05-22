@@ -1,37 +1,40 @@
 "use client"
 
-import * as React from "react"
-import { Button } from "./button"
-import { Filter } from "lucide-react"
-import { MobileBottomSheet } from "./mobile-bottom-sheet"
+import type React from "react"
+
+import { useState } from "react"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Button } from "@/components/ui/button"
+import { useMobile } from "@/hooks/use-mobile"
 
 interface MobileFilterProps {
   children: React.ReactNode
-  title?: string
-  className?: string
-  buttonText?: string
-  buttonIcon?: React.ReactNode
 }
 
-export function MobileFilter({
-  children,
-  title = "Filters",
-  className,
-  buttonText = "Filter",
-  buttonIcon = <Filter className="h-4 w-4 mr-2" />,
-}: MobileFilterProps) {
-  const [isOpen, setIsOpen] = React.useState(false)
+const MobileFilter: React.FC<MobileFilterProps> = ({ children }) => {
+  const [open, setOpen] = useState(false)
+  const isMobile = useMobile()
+
+  if (!isMobile) {
+    return null
+  }
 
   return (
-    <>
-      <Button variant="outline" size="sm" onClick={() => setIsOpen(true)} className="md:hidden flex items-center">
-        {buttonIcon}
-        {buttonText}
-      </Button>
-
-      <MobileBottomSheet isOpen={isOpen} onClose={() => setIsOpen(false)} title={title} className={className}>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button variant="outline" size="sm" className="ml-auto">
+          Filters
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="p-6">
+        <SheetHeader>
+          <SheetTitle>Filters</SheetTitle>
+          <SheetDescription>Make changes to your filter preferences here.</SheetDescription>
+        </SheetHeader>
         {children}
-      </MobileBottomSheet>
-    </>
+      </SheetContent>
+    </Sheet>
   )
 }
+
+export default MobileFilter
