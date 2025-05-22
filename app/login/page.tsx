@@ -42,6 +42,12 @@ export default function LoginPage() {
     }
   }, [router])
 
+  // Helper function to set auth cookie
+  const setAuthCookie = (userData: any) => {
+    // Set a cookie that middleware can access
+    document.cookie = `homi_auth=${JSON.stringify(userData)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax;`
+  }
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -64,6 +70,7 @@ export default function LoginPage() {
         }
 
         localStorage.setItem("homi_user", JSON.stringify(demoStudentUser))
+        setAuthCookie(demoStudentUser)
         setLoginSuccess(true)
 
         // Redirect after showing success message
@@ -84,6 +91,7 @@ export default function LoginPage() {
         }
 
         localStorage.setItem("homi_user", JSON.stringify(demoLandlordUser))
+        setAuthCookie(demoLandlordUser)
         setLoginSuccess(true)
 
         // Redirect after showing success message
@@ -131,8 +139,12 @@ export default function LoginPage() {
       created_at: new Date().toISOString(),
     }
 
-    // Store in localStorage
+    // Store in localStorage and set cookie
     localStorage.setItem("homi_user", JSON.stringify(demoUser))
+    setAuthCookie(demoUser)
+
+    // Show success message
+    setLoginSuccess(true)
 
     // Redirect to appropriate dashboard
     setTimeout(() => {

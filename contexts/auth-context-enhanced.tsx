@@ -1,8 +1,9 @@
 "use client"
 
-import { createContext, useContext, useState, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
 
+// Define user types
 export type UserRole = "student" | "landlord" | "admin"
 
 export interface UserProfile {
@@ -14,108 +15,144 @@ export interface UserProfile {
   university_id?: string
   university_name?: string
   company_name?: string
-  verified: boolean
-  created_at: string
   avatar_url?: string
-  bio?: string
-  program?: string
-  year?: number
-  preferences?: Record<string, any>
-  social_links?: Record<string, string>
-  privacy_settings?: Record<string, boolean>
 }
 
 interface AuthContextType {
-  user: any | null
-  profile: UserProfile | null
+  user: UserProfile | null
   isLoading: boolean
   isAuthenticating: boolean
   isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<{ success: boolean; error: any; role?: UserRole }>
-  signUp: (
-    email: string,
-    password: string,
-    role: UserRole,
-    userData: {
-      first_name: string
-      last_name: string
-      university_id?: string
-      university_name?: string
-      company_name?: string
-    },
-  ) => Promise<{ success: boolean; error: any }>
-  ssoLogin: (provider: string) => Promise<void>
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; role?: UserRole }>
   logout: () => Promise<void>
-  updateProfile: (data: Partial<UserProfile>) => Promise<{ success: boolean; error: any }>
-  refreshProfile: () => Promise<void>
-  loadingProvider: string | null
 }
 
-const AuthContext = createContext<AuthContextType>({
-  user: null,
-  profile: null,
-  isLoading: false,
-  isAuthenticating: false,
-  isAuthenticated: false,
-  login: async () => ({ success: false, error: "Not implemented" }),
-  signUp: async () => ({ success: false, error: "Not implemented" }),
-  ssoLogin: async () => {},
-  logout: async () => {},
-  updateProfile: async () => ({ success: false, error: "Not implemented" }),
-  refreshProfile: async () => {},
-  loadingProvider: null,
-})
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<any | null>(null)
-  const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const [user, setUser] = useState<UserProfile | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [isAuthenticating, setIsAuthenticating] = useState(false)
-  const [loadingProvider, setLoadingProvider] = useState<string | null>(null)
   const router = useRouter()
 
-  // All auth functions are stubs that don't actually do anything
-  // This is just to make the app render without errors
-
-  const login = async () => {
-    return { success: false, error: "Auth not available" }
+  // Helper function to set auth cookie
+  const setAuthCookie = (userData: any) => {
+    document.cookie = `homi_auth=${JSON.stringify(userData)}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax;`
   }
 
-  const signUp = async () => {
-    return { success: false, error: "Auth not available" }
-  }
+  // Check for existing user on mount
+  useEffect(() => {
+    const checkAuth = () => {
+      setIsLoading(true)
+      try {
+        // Try to get user from localStorage first
+        const storedUser = localStorage.getItem("homi_user")
+        if (storedUser) {
+          const userData = JSON.parse(storedUser)
+          setUser(userData)
+          setAuthCookie(userData) // Ensure cookie is set
+        }
+      } catch (error) {
+        console.error("Error checking auth:", error)
+        // Clear potentially corrupted data
+        localStorage.removeItem("homi_user")
+      } finally {
+        setIsLoading(false)
+      }
+    }
 
-  const ssoLogin = async () => {
-    // Do nothing
+    checkAuth()
+  }, [])
+
+  const login = async (email: string, password: string) => {
+    setIsAuthenticating(true)
+    try {
+      // Demo login credentials
+      if (email === "student@uni.com" && password === "student123") {
+        const demoStudentUser = {
+          id: "student-demo-id",
+          email: "student@uni.com",
+          first_name: "Alex",
+          last_name: "Student",
+          role: "student" as UserRole,
+          university_name: "University of Toronto",
+          avatar_url: "/universities/uoft.svg",
+        }
+
+        localStorage.setItem("homi_user", JSON.stringify(demoStudentUser))
+        setAuthCookie(demoStudentUser)
+        setUser(demoStudentUser)
+        return { success: true, role: "student" }
+      } else if (email === "property@manager.com" && password === "landlord123") {
+        const demoLandlordUser = {
+          id: "landlord-demo-id",
+          email: "property@manager.com",
+          first_name: "Taylor",
+          last_name: "Manager",
+          role: "landlord" as UserRole,
+          company_name: "Campus Housing Solutions",
+          avatar_url: "/homi-building.png",
+        }
+
+        localStorage.setItem("homi_user", JSON.stringify(demoLandlordUser))
+        setAuthCookie(demoLandlordUser)
+        setUser(demoLandlordUser)
+        return { success: true, role: "landlord" }
+      }
+
+      // For non-demo users, try the API
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      const data = await response.json()
+
+      if (!data.success) {
+        return { success: false, error: data.error || "Login failed" }
+      }
+
+      setUser(data.user)
+      localStorage.setItem("homi_user", JSON.stringify(data.user))
+      return { success: true, role: data.role }
+    } catch (error: any) {
+      console.error("Login error:", error)
+      return { success: false, error: error.message || "An unexpected error occurred" }
+    } finally {
+      setIsAuthenticating(false)
+    }
   }
 
   const logout = async () => {
-    // Do nothing
-  }
+    try {
+      // Clear local storage
+      localStorage.removeItem("homi_user")
 
-  const updateProfile = async () => {
-    return { success: false, error: "Auth not available" }
-  }
+      // Clear cookie
+      document.cookie = "homi_auth=; path=/; max-age=0; SameSite=Lax;"
 
-  const refreshProfile = async () => {
-    // Do nothing
+      // Update state
+      setUser(null)
+
+      // Redirect to login
+      router.push("/login")
+    } catch (error) {
+      console.error("Logout error:", error)
+    }
   }
 
   return (
     <AuthContext.Provider
       value={{
         user,
-        profile,
         isLoading,
         isAuthenticating,
         isAuthenticated: !!user,
         login,
-        signUp,
-        ssoLogin,
         logout,
-        updateProfile,
-        refreshProfile,
-        loadingProvider,
       }}
     >
       {children}
@@ -124,5 +161,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export function useAuth() {
-  return useContext(AuthContext)
+  const context = useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error("useAuth must be used within an AuthProvider")
+  }
+  return context
 }
