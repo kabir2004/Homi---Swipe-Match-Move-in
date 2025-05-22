@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useSearchParams } from "next/navigation"
 import { Header } from "@/components/header"
+import { SwipeCard } from "@/components/swipe-card"
 import type { Listing, Roommate } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -19,7 +19,6 @@ import {
   School,
   Lightbulb,
   MessageCircle,
-  Sparkles,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -27,9 +26,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { fetchRealListings, generateRoommates, calculateMatchRatio, generateListings } from "@/utils/generate-data"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import {
   type PreferenceProfile,
   initializePreferenceProfile,
@@ -42,241 +41,12 @@ import {
 import { PreferenceInsights } from "@/components/preference-insights"
 import { HomiBuoy } from "@/components/homi-buoy"
 import { PreferenceQuiz } from "@/components/preference-quiz"
-import { SwipeCardEnhanced } from "@/components/swipe-card-enhanced"
-import { PremiumUpgrade } from "@/components/premium-upgrade"
 
-// Generate more roommates and listings for better experience
-const ROOMMATE_COUNT = 100
-const LISTING_COUNT = 100
-const FREE_SWIPE_LIMIT = 30
-
-// Helper function to generate listings
-const generateListings = (count: number): Listing[] => {
-  return Array.from({ length: count }, (_, i) => ({
-    id: `listing-${i + 1}`,
-    type: "listing",
-    title: `${["Modern", "Cozy", "Spacious", "Luxury", "Budget"][Math.floor(Math.random() * 5)]} ${
-      ["Apartment", "House", "Studio", "Condo", "Townhouse"][Math.floor(Math.random() * 5)]
-    } near ${["Campus", "Downtown", "University", "Park", "Station"][Math.floor(Math.random() * 5)]}`,
-    description: `A ${
-      ["beautiful", "charming", "comfortable", "stylish", "affordable"][Math.floor(Math.random() * 5)]
-    } place to live with great amenities and convenient location.`,
-    location: `${Math.floor(Math.random() * 999) + 1} ${
-      ["University Ave", "College St", "Main St", "Park Rd", "Queen St"][Math.floor(Math.random() * 5)]
-    }, ${
-      ["Toronto", "Waterloo", "London", "Kingston", "Hamilton", "Ottawa", "Mississauga"][Math.floor(Math.random() * 7)]
-    }`,
-    university: [
-      "University of Toronto",
-      "Western University",
-      "Queen's University",
-      "McMaster University",
-      "University of Waterloo",
-      "Wilfrid Laurier University",
-    ][Math.floor(Math.random() * 6)],
-    price: Math.floor(Math.random() * 1500) + 800,
-    price_min: Math.floor(Math.random() * 500) + 800,
-    price_max: Math.floor(Math.random() * 1000) + 1300,
-    photos: [
-      `/placeholder.svg?height=600&width=800&query=${encodeURIComponent("modern apartment exterior")}`,
-      `/placeholder.svg?height=600&width=800&query=${encodeURIComponent("apartment living room")}`,
-      `/placeholder.svg?height=600&width=800&query=${encodeURIComponent("apartment kitchen")}`,
-      `/placeholder.svg?height=600&width=800&query=${encodeURIComponent("apartment bedroom")}`,
-    ],
-    features: {
-      bedrooms: Math.floor(Math.random() * 4) + 1,
-      bathrooms: Math.floor(Math.random() * 2) + 1,
-      square_feet: Math.floor(Math.random() * 800) + 400,
-      amenities: Array.from(
-        { length: Math.floor(Math.random() * 5) + 3 },
-        () =>
-          [
-            "Laundry",
-            "Dishwasher",
-            "Air Conditioning",
-            "Heating",
-            "Parking",
-            "Gym",
-            "Pool",
-            "Elevator",
-            "Balcony",
-            "Patio",
-            "Rooftop",
-            "Security System",
-            "Doorman",
-            "Pets Allowed",
-            "Furnished",
-            "Utilities Included",
-            "WiFi Included",
-            "Cable Included",
-          ][Math.floor(Math.random() * 18)],
-      ),
-    },
-    walk_distance: (Math.random() * 3 + 0.5).toFixed(1),
-    drive_distance: (Math.random() * 5 + 1).toFixed(1),
-    match_tags: Array.from(
-      { length: Math.floor(Math.random() * 3) + 2 },
-      () =>
-        [
-          "Near Campus",
-          "Utilities Included",
-          "Newly Renovated",
-          "Pet Friendly",
-          "Furnished",
-          "Private Bathroom",
-          "Laundry On-site",
-          "Parking Available",
-          "Air Conditioning",
-          "Heating",
-        ][Math.floor(Math.random() * 10)],
-    ),
-    match_score: Math.floor(Math.random() * 30) + 70,
-    created_at: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000).toISOString(),
-    maps_url: "https://maps.google.com",
-  }))
-}
-
-// Helper function to generate roommates
-const generateRoommates = (count: number): Roommate[] => {
-  const firstNames = [
-    "Alex",
-    "Jordan",
-    "Taylor",
-    "Morgan",
-    "Casey",
-    "Riley",
-    "Avery",
-    "Quinn",
-    "Jamie",
-    "Skyler",
-    "Cameron",
-    "Reese",
-    "Finley",
-    "Dakota",
-    "Hayden",
-    "Rowan",
-    "Sasha",
-    "Kai",
-    "Jaden",
-    "Phoenix",
-    "Remy",
-    "Emerson",
-    "Harley",
-    "River",
-  ]
-
-  const lastNames = [
-    "Smith",
-    "Johnson",
-    "Williams",
-    "Brown",
-    "Jones",
-    "Garcia",
-    "Miller",
-    "Davis",
-    "Rodriguez",
-    "Martinez",
-    "Hernandez",
-    "Lopez",
-    "Gonzalez",
-    "Wilson",
-    "Anderson",
-  ]
-
-  return Array.from({ length: count }, (_, i) => {
-    const firstName = firstNames[Math.floor(Math.random() * firstNames.length)]
-    const lastName = lastNames[Math.floor(Math.random() * lastNames.length)]
-    const gender = Math.random() > 0.5 ? "male" : "female"
-
-    return {
-      id: `roommate-${i + 1}`,
-      type: "roommate",
-      name: `${firstName} ${lastName.charAt(0)}.`,
-      photo: `/placeholder.svg?height=800&width=800&query=${encodeURIComponent(`portrait of ${gender} student smiling`)}`,
-      university: [
-        "University of Toronto",
-        "Western University",
-        "Queen's University",
-        "McMaster University",
-        "University of Waterloo",
-        "Wilfrid Laurier University",
-      ][Math.floor(Math.random() * 6)],
-      program: [
-        "Computer Science",
-        "Engineering",
-        "Business",
-        "Psychology",
-        "Biology",
-        "English",
-        "History",
-        "Mathematics",
-        "Physics",
-        "Chemistry",
-      ][Math.floor(Math.random() * 10)],
-      year: Math.floor(Math.random() * 4) + 1,
-      intro_bio: `Hi, I'm ${firstName}! I'm a ${["friendly", "outgoing", "quiet", "studious", "easygoing"][Math.floor(Math.random() * 5)]} student looking for a compatible roommate.`,
-      tags: Array.from(
-        { length: Math.floor(Math.random() * 3) + 3 },
-        () =>
-          [
-            "Early Riser",
-            "Night Owl",
-            "Clean",
-            "Organized",
-            "Quiet",
-            "Social",
-            "Studious",
-            "Athletic",
-            "Creative",
-            "Outdoorsy",
-            "Tech-Savvy",
-            "Foodie",
-            "Vegan",
-            "Non-Smoker",
-          ][Math.floor(Math.random() * 14)],
-      ),
-      interests: Array.from(
-        { length: Math.floor(Math.random() * 4) + 2 },
-        () =>
-          [
-            "Reading",
-            "Writing",
-            "Hiking",
-            "Biking",
-            "Swimming",
-            "Running",
-            "Yoga",
-            "Cooking",
-            "Photography",
-            "Painting",
-            "Music",
-            "Movies",
-            "Video Games",
-            "Board Games",
-            "Sports",
-          ][Math.floor(Math.random() * 15)],
-      ),
-      match_score: Math.floor(Math.random() * 30) + 70,
-      lifestyle_preferences: {
-        cleanliness: Math.floor(Math.random() * 5) + 1,
-        noise_level: Math.floor(Math.random() * 5) + 1,
-        guests: Math.floor(Math.random() * 5) + 1,
-        sleep_schedule: ["early_bird", "night_owl", "flexible"][Math.floor(Math.random() * 3)],
-      },
-    }
-  })
-}
-
-// Helper function to calculate match ratio
-const calculateMatchRatio = (index: number, total: number): string => {
-  if (total === 0) return "0/0 (0%)"
-  const percentage = Math.round((index / total) * 100)
-  return `${index}/${total} (${percentage}%)`
-}
+// Generate more roommates for better learning
+const ROOMMATE_COUNT = 500
 
 export default function SwipePage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<"listings" | "roommates">("listings")
   const [listings, setListings] = useState<Listing[]>([])
   const [roommates, setRoommates] = useState<Roommate[]>([])
@@ -289,105 +59,84 @@ export default function SwipePage() {
   const [matchRatio, setMatchRatio] = useState<string>("0/0 (0%)")
   const [totalSwipes, setTotalSwipes] = useState<number>(0)
   const [likedItems, setLikedItems] = useState<number>(0)
-  const [showPremiumModal, setShowPremiumModal] = useState<boolean>(false)
-  const [isPremium, setIsPremium] = useState<boolean>(false)
 
   const [preferenceProfile, setPreferenceProfile] = useState<PreferenceProfile>(initializePreferenceProfile())
   const [isLearningMode, setIsLearningMode] = useState<boolean>(true)
   const [showPreferenceInsights, setShowPreferenceInsights] = useState<boolean>(false)
   const [showPreferenceQuiz, setShowPreferenceQuiz] = useState<boolean>(false)
   const [showHomiBuoy, setShowHomiBuoy] = useState<boolean>(false)
-  const [userPreferences, setUserPreferences] = useState<Record<string, any> | null>(null)
 
-  const type = searchParams.get("type") || "listing"
-
-  // Check if user is premium
   useEffect(() => {
-    try {
-      const premiumStatus = localStorage.getItem("homiPremium")
-      if (premiumStatus === "true") {
-        setIsPremium(true)
-      }
-    } catch (error) {
-      console.error("Error checking premium status:", error)
-    }
-  }, [])
+    fetchItems()
+  }, [activeTab, university, priceRange])
 
-  // Load user preferences from localStorage
-  useEffect(() => {
+  // Improve error handling in fetchItems
+  const fetchItems = async () => {
+    setIsLoading(true)
     try {
-      const storedPreferences = localStorage.getItem("userPreferences")
-      if (storedPreferences) {
-        const preferences = JSON.parse(storedPreferences)
-        setUserPreferences(preferences)
+      // Fetch real listings or generate roommates
+      if (activeTab === "listings") {
+        // Use the new fetchRealListings function
+        const realListings = await fetchRealListings(100, { university, priceRange })
 
-        // Set university filter if it exists in preferences
-        if (preferences.university) {
-          setUniversity(preferences.university)
+        if (realListings.length === 0) {
+          console.log("No listings found, using fallback data")
+          // If no listings were found, use fallback data
+          setListings(generateListings(20))
+        } else {
+          // Sort by created_at
+          realListings.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          setListings(realListings)
+        }
+      } else {
+        // Generate more roommates for better learning
+        const generatedRoommates = generateRoommates(ROOMMATE_COUNT)
+
+        // Apply filters
+        let filteredRoommates = [...generatedRoommates]
+
+        if (university) {
+          filteredRoommates = filteredRoommates.filter((roommate) =>
+            roommate.university?.toLowerCase().includes(university.toLowerCase()),
+          )
         }
 
-        // Set price range if budget exists in preferences
-        if (preferences.budget) {
-          setPriceRange([0, preferences.budget])
+        // If filtering resulted in too few roommates, add some that match the filter
+        if (filteredRoommates.length < 10 && university) {
+          const additionalRoommates = generateRoommates(20).map((roommate) => ({
+            ...roommate,
+            university: university,
+          }))
+          filteredRoommates = [...filteredRoommates, ...additionalRoommates]
         }
 
-        // Bootstrap preference profile with quiz data
-        const bootstrappedProfile = bootstrapPreferenceProfile(preferenceProfile, preferences)
-        setPreferenceProfile(bootstrappedProfile)
-      }
+        // Sort by match_score
+        filteredRoommates.sort((a, b) => b.match_score - a.match_score)
 
-      // Load saved swipe count
-      const savedSwipes = localStorage.getItem("totalSwipes")
-      if (savedSwipes) {
-        setTotalSwipes(Number.parseInt(savedSwipes, 10))
-      }
-
-      const savedLikes = localStorage.getItem("likedItems")
-      if (savedLikes) {
-        setLikedItems(Number.parseInt(savedLikes, 10))
+        setRoommates(filteredRoommates)
       }
     } catch (error) {
-      console.error("Error loading user preferences:", error)
+      console.error(`Error fetching ${activeTab}:`, error)
+      // Provide fallback data in case of error
+      if (activeTab === "listings") {
+        setListings(generateListings(20))
+      } else {
+        setRoommates(generateRoommates(20))
+      }
+    } finally {
+      setIsLoading(false)
+      setCurrentIndex(0)
+      updateMatchRatio(0)
     }
-  }, [])
+  }
 
-  // Save swipe count to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem("totalSwipes", totalSwipes.toString())
-      localStorage.setItem("likedItems", likedItems.toString())
-    } catch (error) {
-      console.error("Error saving swipe count:", error)
-    }
-  }, [totalSwipes, likedItems])
-
-  // Generate initial data
-  useEffect(() => {
-    // Generate initial data
-    const initialListings = generateListings(LISTING_COUNT)
-    const initialRoommates = generateRoommates(ROOMMATE_COUNT)
-
-    setListings(initialListings)
-    setRoommates(initialRoommates)
-    setIsLoading(false)
-
-    console.log(`Generated ${initialListings.length} listings and ${initialRoommates.length} roommates`)
-  }, [])
-
-  // Update match ratio when current index changes
-  useEffect(() => {
+  const updateMatchRatio = (index: number) => {
     const totalItems = activeTab === "listings" ? listings.length : roommates.length
-    setMatchRatio(calculateMatchRatio(currentIndex, totalItems))
-  }, [currentIndex, activeTab, listings.length, roommates.length])
+    setMatchRatio(calculateMatchRatio(index, totalItems))
+  }
 
   const handleSwipe = async (direction: "like" | "dislike", id: string) => {
     try {
-      // Check if user has reached the free swipe limit
-      if (!isPremium && totalSwipes >= FREE_SWIPE_LIMIT) {
-        setShowPremiumModal(true)
-        return
-      }
-
       // Update swipe statistics
       setTotalSwipes((prev) => prev + 1)
       if (direction === "like") {
@@ -418,20 +167,14 @@ export default function SwipePage() {
         if (activeTab === "listings" && currentIndex < listings.length - 1) {
           const newIndex = currentIndex + 1
           setCurrentIndex(newIndex)
+          updateMatchRatio(newIndex)
         } else if (activeTab === "roommates" && currentIndex < roommates.length - 1) {
           const newIndex = currentIndex + 1
           setCurrentIndex(newIndex)
+          updateMatchRatio(newIndex)
         } else {
-          // No more items to swipe, generate more
-          if (activeTab === "listings") {
-            const newListings = generateListings(50)
-            setListings((prev) => [...prev, ...newListings])
-            setCurrentIndex((prev) => prev + 1)
-          } else {
-            const newRoommates = generateRoommates(50)
-            setRoommates((prev) => [...prev, ...newRoommates])
-            setCurrentIndex((prev) => prev + 1)
-          }
+          // No more items to swipe
+          setCurrentIndex(-1)
         }
       }, 300)
     } catch (error) {
@@ -451,19 +194,18 @@ export default function SwipePage() {
   const handleTabChange = (value: string) => {
     setActiveTab(value as "listings" | "roommates")
     setCurrentIndex(0)
+    setTotalSwipes(0)
+    setLikedItems(0)
   }
 
   const resetCards = () => {
     setCurrentIndex(0)
+    setTotalSwipes(0)
+    setLikedItems(0)
+    updateMatchRatio(0)
 
-    // Generate new cards
-    if (activeTab === "listings") {
-      const newListings = generateListings(LISTING_COUNT)
-      setListings(newListings)
-    } else {
-      const newRoommates = generateRoommates(ROOMMATE_COUNT)
-      setRoommates(newRoommates)
-    }
+    // Re-fetch items to get a fresh batch
+    fetchItems()
   }
 
   const handleQuickStart = () => {
@@ -491,14 +233,6 @@ export default function SwipePage() {
     setShowPreferenceInsights(true)
   }
 
-  const handleUpgradeToPremium = () => {
-    // In a real app, this would handle payment processing
-    // For demo purposes, we'll just set the premium status
-    setIsPremium(true)
-    localStorage.setItem("homiPremium", "true")
-    setShowPremiumModal(false)
-  }
-
   // Update match scores for roommates based on current preference profile
   useEffect(() => {
     if (activeTab === "roommates" && isLearningMode && totalSwipes > 0) {
@@ -513,34 +247,6 @@ export default function SwipePage() {
 
   const currentItems = activeTab === "listings" ? listings : roommates
   const hasItems = currentItems.length > 0 && currentIndex >= 0 && currentIndex < currentItems.length
-
-  // Calculate remaining free swipes
-  const remainingFreeSwipes = Math.max(0, FREE_SWIPE_LIMIT - totalSwipes)
-
-  if (isLoading) {
-    return (
-      <div className="h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
-      </div>
-    )
-  }
-
-  // Ensure we always have cards to show
-  if (activeTab === "listings" && (!listings.length || currentIndex >= listings.length)) {
-    const newListings = generateListings(50)
-    setListings((prev) => [...prev, ...newListings])
-    if (currentIndex >= listings.length) {
-      setCurrentIndex(0)
-    }
-  }
-
-  if (activeTab === "roommates" && (!roommates.length || currentIndex >= roommates.length)) {
-    const newRoommates = generateRoommates(50)
-    setRoommates((prev) => [...prev, ...newRoommates])
-    if (currentIndex >= roommates.length) {
-      setCurrentIndex(0)
-    }
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -612,35 +318,15 @@ export default function SwipePage() {
               </div>
             </div>
 
-            {/* Premium status and swipe limit display */}
+            {/* Match ratio display */}
             <div className="flex justify-between items-center mb-4">
               <div className="text-sm text-gray-600">
                 <span className="font-medium">Progress:</span> {matchRatio}
               </div>
-              {isPremium ? (
-                <div className="flex items-center text-sm text-amber-600 font-medium">
-                  <Sparkles className="h-4 w-4 mr-1" />
-                  Premium
-                </div>
-              ) : (
-                <div className="text-sm text-gray-600">
-                  <span className="font-medium">Free Swipes:</span> {remainingFreeSwipes}/{FREE_SWIPE_LIMIT}
-                </div>
-              )}
-            </div>
-
-            {/* Match ratio display */}
-            <div className="flex justify-between items-center mb-4">
               <div className="text-sm text-gray-600">
                 <span className="font-medium">Liked:</span> {likedItems}/{totalSwipes} (
                 {totalSwipes > 0 ? Math.round((likedItems / totalSwipes) * 100) : 0}%)
               </div>
-              {!isPremium && remainingFreeSwipes <= 5 && remainingFreeSwipes > 0 && (
-                <div className="text-xs text-amber-600 font-medium flex items-center">
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  {remainingFreeSwipes} swipes left
-                </div>
-              )}
             </div>
 
             {activeTab === "roommates" && showPreferenceInsights && (
@@ -694,7 +380,7 @@ export default function SwipePage() {
                   <TabsContent value="listings" className="mt-0">
                     <div className="relative h-[600px] w-full">
                       {hasItems && activeTab === "listings" ? (
-                        <SwipeCardEnhanced
+                        <SwipeCard
                           item={listings[currentIndex]}
                           type="listing"
                           onSwipe={handleSwipe}
@@ -710,13 +396,15 @@ export default function SwipePage() {
                           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
                             <Home className="h-10 w-10 text-gray-400" />
                           </div>
-                          <h3 className="text-xl font-bold mb-4">Loading More Listings</h3>
+                          <h3 className="text-xl font-bold mb-4">No More Listings</h3>
                           <p className="text-gray-600 mb-6">
-                            We're finding more great listings for you. Please wait a moment...
+                            {university
+                              ? `No more listings near ${university} match your criteria.`
+                              : "You've gone through all available listings. Check back later for more options."}
                           </p>
                           <Button onClick={resetCards} className="bg-blue-600 hover:bg-blue-700 text-white">
                             <RefreshCw className="h-4 w-4 mr-2" />
-                            Refresh Listings
+                            Start Over
                           </Button>
                         </motion.div>
                       )}
@@ -726,7 +414,7 @@ export default function SwipePage() {
                   <TabsContent value="roommates" className="mt-0">
                     <div className="relative h-[600px] w-full">
                       {hasItems && activeTab === "roommates" ? (
-                        <SwipeCardEnhanced
+                        <SwipeCard
                           item={roommates[currentIndex]}
                           type="roommate"
                           onSwipe={handleSwipe}
@@ -743,13 +431,15 @@ export default function SwipePage() {
                           <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
                             <User2 className="h-10 w-10 text-gray-400" />
                           </div>
-                          <h3 className="text-xl font-bold mb-4">Loading More Roommates</h3>
+                          <h3 className="text-xl font-bold mb-4">No More Roommates</h3>
                           <p className="text-gray-600 mb-6">
-                            We're finding more potential roommates for you. Please wait a moment...
+                            {university
+                              ? `No more potential roommates at ${university} match your criteria.`
+                              : "You've gone through all potential roommates. Check back later for more matches."}
                           </p>
                           <Button onClick={resetCards} className="bg-blue-600 hover:bg-blue-700 text-white">
                             <RefreshCw className="h-4 w-4 mr-2" />
-                            Refresh Roommates
+                            Start Over
                           </Button>
                         </motion.div>
                       )}
@@ -859,8 +549,8 @@ export default function SwipePage() {
                   <div>
                     <h4 className="font-medium mb-2">Amenities:</h4>
                     <div className="flex flex-wrap gap-2">
-                      {(detailItem as Listing).features.amenities.map((amenity, index) => (
-                        <Badge key={index} variant="outline">
+                      {(detailItem as Listing).features.amenities.map((amenity) => (
+                        <Badge key={amenity} variant="outline">
                           {amenity}
                         </Badge>
                       ))}
@@ -928,8 +618,8 @@ export default function SwipePage() {
                   <div>
                     <h4 className="font-medium mb-2">Tags:</h4>
                     <div className="flex flex-wrap gap-2">
-                      {(detailItem as Roommate).tags.map((tag, index) => (
-                        <Badge key={index} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      {(detailItem as Roommate).tags.map((tag) => (
+                        <Badge key={tag} variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                           {tag}
                         </Badge>
                       ))}
@@ -940,8 +630,8 @@ export default function SwipePage() {
                     <div>
                       <h4 className="font-medium mb-2">Interests:</h4>
                       <div className="flex flex-wrap gap-2">
-                        {(detailItem as Roommate).interests.map((interest, index) => (
-                          <Badge key={index} variant="outline">
+                        {(detailItem as Roommate).interests.map((interest) => (
+                          <Badge key={interest} variant="outline">
                             {interest}
                           </Badge>
                         ))}
@@ -1047,13 +737,6 @@ export default function SwipePage() {
       <Dialog open={showPreferenceQuiz} onOpenChange={setShowPreferenceQuiz}>
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-0">
           <PreferenceQuiz onComplete={handleQuizComplete} onCancel={() => setShowPreferenceQuiz(false)} />
-        </DialogContent>
-      </Dialog>
-
-      {/* Premium Upgrade Modal */}
-      <Dialog open={showPremiumModal} onOpenChange={setShowPremiumModal}>
-        <DialogContent className="max-w-md">
-          <PremiumUpgrade onUpgrade={handleUpgradeToPremium} />
         </DialogContent>
       </Dialog>
     </div>

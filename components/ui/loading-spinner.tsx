@@ -1,22 +1,31 @@
-import { cn } from "@/lib/utils"
-import { Loader2 } from "lucide-react"
+"use client"
+
+import { motion } from "framer-motion"
 
 interface LoadingSpinnerProps {
-  size?: "sm" | "md" | "lg" | "xl"
+  size?: "sm" | "md" | "lg"
+  color?: "primary" | "white" | "gray"
   className?: string
 }
 
-export function LoadingSpinner({ size = "md", className }: LoadingSpinnerProps) {
-  const sizeClasses = {
-    sm: "h-4 w-4",
-    md: "h-8 w-8",
-    lg: "h-12 w-12",
-    xl: "h-16 w-16",
+export function LoadingSpinner({ size = "md", color = "primary", className = "" }: LoadingSpinnerProps) {
+  const sizeMap = {
+    sm: "w-4 h-4",
+    md: "w-8 h-8",
+    lg: "w-12 h-12",
+  }
+
+  const colorMap = {
+    primary: "border-primary",
+    white: "border-white",
+    gray: "border-gray-300",
   }
 
   return (
-    <div className={cn("flex items-center justify-center", className)}>
-      <Loader2 className={cn("animate-spin text-blue-600", sizeClasses[size])} />
-    </div>
+    <motion.div
+      animate={{ rotate: 360 }}
+      transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+      className={`rounded-full border-2 border-t-transparent ${sizeMap[size]} ${colorMap[color]} ${className}`}
+    />
   )
 }

@@ -324,12 +324,12 @@ export const generateDiverseRoommateProfiles = (count: number): RoommateProfile[
   const profiles: RoommateProfile[] = []
   
   // Helper function to get random value
-  const getRandomValue = <T>(values: T[]): T => {\
+  const getRandomValue = <T>(values: T[]): T => {
     return values[Math.floor(Math.random() * values.length)]
   }
   
   // Helper function to get random number in range
-  const getRandomNumber = (min: number, max: number): number => {\
+  const getRandomNumber = (min: number, max: number): number => {
     return Math.floor(Math.random() * (max - min + 1)) + min
   }
   
@@ -378,34 +378,34 @@ export const generateDiverseRoommateProfiles = (count: number): RoommateProfile[
     'Basketball', 'Soccer', 'Tennis', 'Volleyball', 'Chess', 'Coding'
   ]
   
-  // Generate diverse profiles\
-  for (let i = 0; i < count; i++) {\
-    const firstName = getRandomValue(firstNames)\
-    const lastName = getRandomValue(lastNames)\
-    const id = \`profile-${i + 1}`
+  // Generate diverse profiles
+  for (let i = 0; i < count; i++) {
+    const firstName = getRandomValue(firstNames)
+    const lastName = getRandomValue(lastNames)
+    const id = `profile-${i + 1}`
     
-    const profile: RoommateProfile = {\
-      id: id,\
-      name: \`${firstName} ${lastName}`,\
-      age: getRandomNumber(18, 30),\
-      gender: getRandomValue(['Male', 'Female', 'Non-binary']),\
-      university: getRandomValue(universities),\
-      program: getRandomValue(programs),\
-      year: getRandomValue([1, 2, 3, 4, 'Masters', 'PhD']),\
-      bio: \`Hi, I'm ${firstName}! I\'m studying ${getRandomValue(programs)} and looking for a compatible roommate.`,\
-      hobbies: Array.from({ length: getRandomNumber(2, 4) }, () => getRandomValue(hobbies)),\
+    const profile: RoommateProfile = {
+      id: id,
+      name: `${firstName} ${lastName}`,
+      age: getRandomNumber(18, 30),
+      gender: getRandomValue(['Male', 'Female', 'Non-binary']),
+      university: getRandomValue(universities),
+      program: getRandomValue(programs),
+      year: getRandomValue([1, 2, 3, 4, 'Masters', 'PhD']),
+      bio: `Hi, I'm ${firstName}! I'm studying ${getRandomValue(programs)} and looking for a compatible roommate.`,
+      hobbies: Array.from({ length: getRandomNumber(2, 4) }, () => getRandomValue(hobbies)),
       profileImage: `/placeholder.svg?height=400&width=400&query=student%20portrait%20${firstName}`,
       
-      // Preference categories with diverse values\
-      cleanliness: getRandomNumber(1, 10),\
-      noise: getRandomNumber(1, 10),\
-      socialLevel: getRandomNumber(1, 10),\
-      sleepSchedule: getRandomValue(['Early bird', 'Night owl', 'Regular']),\
-      studyHabits: getRandomValue(['At home', 'Library', 'Coffee shops', 'Mixed']),\
-      guests: getRandomValue(['Frequently', 'Occasionally', 'Rarely']),\
-      smoking: getRandomValue([true, false]),\
-      drinking: getRandomValue(['Frequently', 'Socially', 'Rarely', 'Never']),\
-      pets: getRandomValue(['Yes', 'No', 'Allergic']),\
+      // Preference categories with diverse values
+      cleanliness: getRandomNumber(1, 10),
+      noise: getRandomNumber(1, 10),
+      socialLevel: getRandomNumber(1, 10),
+      sleepSchedule: getRandomValue(['Early bird', 'Night owl', 'Regular']),
+      studyHabits: getRandomValue(['At home', 'Library', 'Coffee shops', 'Mixed']),
+      guests: getRandomValue(['Frequently', 'Occasionally', 'Rarely']),
+      smoking: getRandomValue([true, false]),
+      drinking: getRandomValue(['Frequently', 'Socially', 'Rarely', 'Never']),
+      pets: getRandomValue(['Yes', 'No', 'Allergic']),
       cooking: getRandomValue(['Often', 'Sometimes', 'Rarely', 'Never']),
       sharedItems: getRandomValue(['Everything', 'Some things', 'Nothing']),
       personality: getRandomValue(['Extrovert', 'Introvert', 'Ambivert']),
